@@ -1,0 +1,32 @@
+import Eq from "./Eq.jsx";
+import CatFace from "./CatFace.jsx";
+import CompactLyric from "./CompactLyric.jsx";
+import { IconTimer } from "./icons.jsx";
+import { fmtTimer } from "../lib/format.js";
+
+export default function Compact({ kind, media, timer, lyrics }) {
+  if (kind === "lyric") {
+    return <CompactLyric lyrics={lyrics} media={media} />;
+  }
+  if (kind === "music") {
+    return (
+      <div className="compact-inner">
+        <Eq on />
+      </div>
+    );
+  }
+  if (kind === "timer") {
+    return (
+      <div className="compact-inner compact-timer">
+        <IconTimer size={14} />
+        <span className="c-time">{fmtTimer(timer.left)}</span>
+      </div>
+    );
+  }
+  // Idle: wajah kucing menggantikan dua titik sensor
+  return (
+    <div className="compact-inner" style={{ width: "100%", height: "100%" }}>
+      <CatFace />
+    </div>
+  );
+}

@@ -1,0 +1,227 @@
+/* Slide Convert. Memakai --accent dari Island. */
+.cv {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 6px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #fff;
+  font-size: 12px;
+  user-select: none;
+}
+
+.cv-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+  padding: 0 24px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.cv-empty b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cv-empty span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.cv-empty .cv-pick {
+  margin-top: 4px;
+  padding: 6px 14px;
+  text-transform: none;
+}
+.cv-empty .cv-warn {
+  color: #ff9f0a;
+}
+
+.cv.over .cv-empty,
+.cv.over .cv-list {
+  border-color: var(--accent, #0a84ff);
+  background: color-mix(in srgb, var(--accent, #0a84ff) 16%, transparent);
+}
+
+.cv-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.cv-row {
+  flex: none;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+}
+.cv-row.blocked {
+  opacity: 0.5;
+}
+.cv-ext {
+  min-width: 34px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+}
+.cv-row.done .cv-ext {
+  background: #30d158;
+  color: #04210d;
+}
+.cv-row.run .cv-ext,
+.cv-row.wait .cv-ext {
+  animation: cv-pulse 1s ease-in-out infinite;
+}
+.cv-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.cv-meta {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.cv-row.done .cv-meta {
+  color: rgba(255, 255, 255, 0.75);
+}
+.cv-row.error .cv-meta {
+  color: #ff6961;
+}
+
+.cv-grab {
+  cursor: grab;
+  padding: 0 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.cv-grab:active {
+  cursor: grabbing;
+}
+.cv-mini {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cv-mini:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+.cv-mini:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.cv-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cv-chips,
+.cv-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.cv-chips {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cv-chips::-webkit-scrollbar {
+  display: none;
+}
+.cv-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.cv-chip,
+.cv-go {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-chip {
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+}
+.cv-chip.merge,
+.cv-actions .cv-chip {
+  text-transform: none;
+}
+.cv-chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+/* Warna isi dibuat tetap (putih + teks hitam) supaya selalu terbaca, apa pun warna --accent */
+.cv-chip.on,
+.cv-chip.on:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+.cv-go {
+  padding: 5px 14px;
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+}
+.cv-go:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+}
+.cv-chip:disabled,
+.cv-go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@keyframes cv-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

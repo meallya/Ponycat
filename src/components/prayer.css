@@ -1,0 +1,379 @@
+/* Tampilan jadwal sholat (nama kelas .salat-* supaya tidak bentrok dengan .prayer-* lama).
+   Dirancang untuk slide 560 x 152. Warna diambil dari screenshot referensi. */
+.salat {
+  --salat-accent: #a9cbdc; /* warna "Subuh", cincin, dan nama sholat berikutnya */
+  --salat-switch: #98c4d4; /* warna saklar "10 menit sebelum" saat nyala */
+  --salat-muted: rgba(255, 255, 255, 0.64);
+  --salat-faint: rgba(255, 255, 255, 0.42);
+  --salat-chip: rgba(255, 255, 255, 0.08);
+  --salat-chip-on: rgba(255, 255, 255, 0.22);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+  column-gap: 24px;
+  width: 100%;
+  height: 100%;
+  padding: 8px 16px 12px; /* angka pertama: naikkan/turunkan untuk geser konten ke bawah/atas */
+  overflow: hidden;
+  color: #fff;
+}
+
+.salat-left,
+.salat-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* ---------- kolom kiri ---------- */
+.salat-next {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--salat-accent);
+}
+
+.salat-bigrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: 10px;
+}
+
+.salat-count {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 30px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.salat-at {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 2px;
+}
+
+.salat-at b {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.salat-at span {
+  font-size: 11.5px;
+  line-height: 14px;
+  color: var(--salat-muted);
+}
+
+.salat-place {
+  display: flex;
+  flex-direction: column;
+  line-height: 16px;
+}
+
+.salat-place b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.salat-place span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--salat-muted);
+}
+
+.salat-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.salat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--salat-chip);
+  color: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.salat-btn:hover {
+  background: var(--salat-chip-on);
+}
+
+.salat-btn svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+/* ---------- kolom kanan ---------- */
+.salat-info,
+.salat-playing {
+  height: 20px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.salat-info {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--salat-muted);
+}
+
+.salat-info i {
+  margin: 0 5px;
+  font-style: normal;
+  opacity: 0.6;
+}
+
+.salat-playing {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--salat-accent);
+}
+
+.salat-stop {
+  height: 20px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salat-stop:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.salat-arc {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.salat-arc-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 4.4;
+}
+
+.salat-dot {
+  fill: rgba(255, 255, 255, 0.36);
+}
+
+.salat-dot.past {
+  fill: rgba(255, 255, 255, 0.2);
+}
+
+.salat-ring {
+  fill: none;
+  stroke: var(--salat-accent);
+  stroke-width: 1.5;
+}
+
+.salat-core {
+  fill: var(--salat-accent);
+}
+
+.salat-moon circle {
+  fill: rgba(150, 135, 230, 0.2);
+}
+
+.salat-moon path {
+  fill: none;
+  stroke: #c7c2e2;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.salat-moon.past {
+  opacity: 0.5;
+}
+
+.salat-names {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 5), 1fr);
+  margin-top: 1px;
+  text-align: center;
+}
+
+.salat-pcell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.salat-pname {
+  font-size: 11.5px;
+  line-height: 15px;
+  color: var(--salat-faint);
+}
+
+.salat-ptime {
+  font-size: 12.5px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--salat-faint);
+}
+
+.salat-pcell.past .salat-pname,
+.salat-pcell.past .salat-ptime {
+  opacity: 0.6;
+}
+
+.salat-pcell.next .salat-pname {
+  color: #fff;
+  font-weight: 700;
+}
+
+.salat-pcell.next .salat-ptime {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ---------- kontrol bawah ---------- */
+.salat-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Segmen Adzan / Nada / Senyap: tiga kolom sama lebar supaya pil penanda bisa
+   meluncur dengan translateX murni (tanpa mengukur lebar tombol lewat JS). */
+.salat-seg {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  flex: none;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--salat-chip);
+}
+
+.salat-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 3);
+  border-radius: 999px;
+  background: var(--salat-chip-on);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  /* sedikit overshoot supaya terasa memantul; ganti ke ease-out biasa kalau kurang suka */
+  transition: transform 0.34s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+
+.salat-seg button {
+  position: relative;
+  z-index: 1;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.25s,
+    transform 0.14s ease-out;
+}
+
+.salat-seg button:hover {
+  color: #fff;
+}
+
+.salat-seg button:active {
+  transform: scale(0.92);
+}
+
+.salat-seg button.on {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salat-thumb,
+  .salat-seg button {
+    transition: none;
+  }
+}
+
+.salat-remind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.salat-switch {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 17px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.2s;
+}
+
+.salat-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.salat-remind.on .salat-switch {
+  background: var(--salat-switch);
+}
+
+.salat-remind.on .salat-switch::after {
+  transform: translateX(11px);
+}

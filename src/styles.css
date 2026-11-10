@@ -1,0 +1,1681 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  background: transparent; /* wajib transparan supaya window-nya tembus */
+  overflow: hidden;
+}
+
+body {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Area window: pill menempel di tengah atas */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 0;
+}
+
+/* Zona tipis di tepi atas layar yang memunculkan pill saat tersembunyi */
+.hotzone {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 280px;
+  margin-left: -140px;
+  height: 14px;
+  z-index: 5;
+}
+
+/* Tanda visual untuk membuka island (notch kecil di tengah atas) */
+.open-hint {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 72px;
+  height: 4px;
+  margin-left: -36px;
+  border-radius: 0 0 6px 6px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease,
+    background 0.2s;
+  z-index: 4;
+  transform: translateY(-2px);
+}
+.open-hint.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  animation: hint-pulse 2.4s ease-in-out infinite;
+}
+.open-hint.show:hover {
+  background: rgba(255, 255, 255, 0.35);
+  animation: none;
+}
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Atas nempel, bawah melengkung — smooth & clean */
+.island {
+  position: relative;
+  flex: none;
+  background: #000;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 0 0 18px 18px;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.08),
+    0 6px 20px rgba(0, 0, 0, 0.35);
+  will-change: width, height, transform;
+  backface-visibility: hidden;
+}
+.island.open {
+  cursor: default;
+  border-radius: 0 0 26px 26px;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.1),
+    0 12px 36px rgba(0, 0, 0, 0.42);
+}
+.island.closed {
+  border-radius: 0 0 16px 16px;
+}
+
+/* Isi pill: ukuran tetap, ditaruh di tengah, dipotong oleh pill */
+.layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+/* Tombol samping kiri / kanan */
+.side-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-70%);
+  z-index: 6;
+  width: 32px;
+  height: 28px;
+  border: 0;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+.side-btn:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.side-btn.disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.side-btn.left {
+  left: 8px;
+}
+.side-btn.right {
+  right: 8px;
+}
+
+/* ---------- Slide ---------- */
+.viewport {
+  position: relative;
+  overflow: hidden;
+}
+.track {
+  display: flex;
+  height: 100%;
+}
+.slide {
+  flex: none;
+  overflow: hidden;
+}
+
+.dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  transition:
+    width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.2s;
+}
+.dot::after {
+  content: "";
+  position: absolute;
+  inset: -6px; /* area klik lebih lega */
+}
+.dot.on {
+  width: 18px;
+  background: #fff;
+}
+
+/* ---------- Kecil (compact / notch tertutup) ---------- */
+.c-row {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+/* Idle notch — dua sensor seperti Dynamic Island / kamera */
+.c-idle-notch {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+.sensor-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: none;
+}
+.sensor {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  position: relative;
+}
+.sensor::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 35%,
+    #c8e8c0 0%,
+    #6a9a68 45%,
+    #2a4a2a 100%
+  );
+  opacity: 0.85;
+  box-shadow: 0 0 4px rgba(140, 200, 140, 0.55);
+}
+.c-idle-meta {
+  display: none;
+}
+
+.c-clock {
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+.c-date {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.c-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  flex: none;
+}
+.c-clock-time {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex: none;
+  min-width: 42px;
+  text-align: left;
+}
+.c-music {
+  gap: 8px;
+  padding: 0 12px;
+}
+.c-music-meta {
+  flex: 1;
+  min-width: 0;
+}
+.c-music-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.c-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff9f0a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Umum ---------- */
+.art {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex: none;
+  background: linear-gradient(135deg, #7c8cff, #ff6bd6 60%, #ffb86b) center /
+    cover no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+.art-sm {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+}
+.meta {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.empty {
+  height: 100%;
+  padding: 0 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.empty small {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Equalizer */
+.eq {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 16px;
+  margin: 0 auto;
+}
+.eq i {
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent, #ff6bd6);
+}
+.eq.on i {
+  animation: bounce 0.9s ease-in-out infinite;
+}
+.eq.on i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.eq.on i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.eq.on i:nth-child(4) {
+  animation-delay: -0.15s;
+}
+@keyframes bounce {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 18px;
+  }
+}
+
+/* ---------- Slide musik (kiri: lagu, kanan: lirik) ---------- */
+.music {
+  height: 100%;
+  padding: 10px 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.music-split {
+  flex-direction: row;
+  gap: 0;
+  padding: 10px 24px 6px 24px;
+  overflow: hidden;
+}
+.music-left {
+  width: 54%;
+  flex: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding-right: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
+  box-sizing: border-box;
+}
+.album-art-wrap {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  position: relative;
+}
+.album-art {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  background: #1a1a1a;
+}
+.album-art-fallback {
+  background: linear-gradient(135deg, #7c8cff, #ff6bd6 60%, #ffb86b);
+}
+.album-art-fallback.hidden {
+  display: none;
+}
+.album-art-wrap .album-art-fallback {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+.music-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  overflow: visible;
+}
+.music-info .title {
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-info .sub {
+  font-size: 10.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-info .controls {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  height: 28px;
+  flex-wrap: nowrap;
+  overflow: visible;
+  width: 100%;
+}
+.transport {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.vol-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex: 0 0 auto;
+  margin-left: 2px;
+  margin-right: 2px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+.vol-group button {
+  opacity: 0.9;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.vol-group button.vol-mute {
+  width: 24px;
+  opacity: 1;
+}
+.vol-group button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+  transform: none;
+}
+/* EQ disembunyikan di baris controls supaya tombol + volume tidak terpotong */
+.music-info .eq {
+  display: none;
+}
+.music-info .eq i {
+  width: 2.5px;
+}
+.music-info .eq.on i {
+  animation: bounce-sm 0.9s ease-in-out infinite;
+}
+@keyframes bounce-sm {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: 12px;
+  }
+}
+.compact-music {
+  gap: 10px;
+}
+.compact-art {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: none;
+  display: block;
+}
+.compact-art-fallback {
+  background: linear-gradient(135deg, #7c8cff, #ff6bd6);
+}
+.music-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  padding-left: 12px;
+  overflow: hidden;
+}
+.music-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.music-split .art {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.progress-row span {
+  width: 28px;
+  flex: none;
+  text-align: center;
+}
+.progress-row span:last-child {
+  text-align: right;
+}
+.progress {
+  flex: 1;
+  min-width: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: #fff;
+  transition: width 0.2s linear;
+}
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  height: 28px;
+  margin-top: auto;
+}
+.controls button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  opacity: 0.85;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+  color: inherit;
+  padding: 0;
+}
+.controls button:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.controls button:active {
+  transform: scale(0.92);
+}
+.controls .play {
+  opacity: 1;
+}
+
+/* Lirik (panel kanan) */
+.lyrics {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
+  padding: 8px 6px;
+  scroll-behavior: auto;
+}
+.lyrics::-webkit-scrollbar {
+  width: 0;
+}
+.lyrics-hint {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  padding-top: 28px;
+}
+.lyrics-line {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.28);
+  text-align: center;
+  padding: 3px 6px;
+  transition:
+    color 0.15s,
+    font-weight 0.15s,
+    opacity 0.15s;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.lyrics-line .lyric-text {
+  display: block;
+}
+.lyrics-line .lyric-roma {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.55;
+  margin-top: 1px;
+  letter-spacing: 0.01em;
+}
+.lyrics-line.on {
+  color: #fff;
+  font-weight: 600;
+}
+.lyrics-line.on .lyric-roma {
+  opacity: 0.7;
+  font-weight: 500;
+}
+.lyrics-line.plain {
+  text-align: left;
+  padding-left: 4px;
+}
+
+/* ---------- Slide timer ---------- */
+.timer {
+  height: 100%;
+  padding: 14px 26px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.timer-main {
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.timer-digits {
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s;
+}
+.timer-digits.run {
+  color: #ff9f0a;
+}
+.timer-digits.done {
+  color: #30d158;
+}
+.round {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+.round:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+}
+.round:active {
+  transform: scale(0.92);
+}
+.round.primary {
+  background: #ff9f0a;
+  color: #000;
+}
+.round.primary:hover {
+  background: #ffb340;
+}
+.chips {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chip {
+  border: 0;
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.chip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+.chip.on {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+}
+.chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chip-note {
+  font-size: 12px;
+  color: #30d158;
+}
+.timer-custom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.timer-custom.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.timer-custom span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 0 1px;
+}
+.timer-custom input {
+  width: 22px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  padding: 0;
+}
+.timer-custom input:focus {
+  color: #ff9f0a;
+}
+.timer-set {
+  border: 0;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 159, 10, 0.9);
+  color: #000;
+  cursor: pointer;
+}
+.timer-set:hover:not(:disabled) {
+  background: #ffb340;
+}
+.timer-set:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Slide penyimpanan sementara ---------- */
+.temp {
+  height: 100%;
+  padding: 10px 34px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.temp.drag {
+  background: rgba(48, 209, 88, 0.12);
+}
+.temp-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+.temp-empty small {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.temp-pick {
+  margin-top: 6px;
+  border: 0;
+  border-radius: 12px;
+  padding: 5px 14px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+.temp-pick:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.temp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0 2px;
+}
+.temp-clear {
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  cursor: pointer;
+}
+.temp-clear:hover {
+  color: #ff6b6b;
+}
+.temp-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.temp-list::-webkit-scrollbar {
+  width: 4px;
+}
+.temp-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+.temp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px 0 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.temp-item.draggable {
+  cursor: grab;
+}
+.temp-item.draggable:active {
+  cursor: grabbing;
+  opacity: 0.85;
+}
+.temp-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  flex: none;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+.temp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.temp-item .title {
+  font-size: 12px;
+}
+.temp-item .sub {
+  font-size: 10.5px;
+}
+.temp-item .meta {
+  cursor: pointer;
+}
+.temp-add-more {
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  padding: 2px 0 4px;
+}
+.temp-add-more:hover {
+  color: #fff;
+}
+.mini {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+.mini:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ---------- Slide notes (Apple-style) ---------- */
+.notes-wrap {
+  height: 100%;
+  display: flex;
+  gap: 0;
+  padding: 8px 36px 4px 32px;
+}
+.notes-list {
+  width: 118px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding-right: 6px;
+  margin-right: 6px;
+}
+.notes-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 2px 2px 6px;
+}
+.notes-add {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+.notes-add:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.notes-list-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.notes-list-body::-webkit-scrollbar {
+  width: 3px;
+}
+.notes-list-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+.notes-item {
+  position: relative;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 22px 6px 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notes-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.notes-item.on {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.notes-item-title {
+  display: block;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notes-item-del {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.35);
+  opacity: 0;
+}
+.notes-item:hover .notes-item-del {
+  opacity: 1;
+}
+.notes-item-del:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+}
+.notes-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 8px 4px;
+  text-align: center;
+}
+.notes-editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.notes {
+  width: 100%;
+  height: 100%;
+  padding: 4px 6px;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: #fff;
+  font:
+    13px/1.5 "Segoe UI Variable Text",
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  user-select: text;
+  cursor: text;
+}
+.notes::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.notes::-webkit-scrollbar {
+  width: 6px;
+}
+.notes::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* Menu ikon di atas (ganti scroll samping) */
+.menu-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  padding: 8px 16px 0 14px;
+  flex: none;
+}
+.menu-icons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+.menu-icons::-webkit-scrollbar {
+  height: 0;
+}
+.menu-clock {
+  flex: none;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  cursor: default;
+  letter-spacing: 0.2px;
+}
+.menu-item {
+  width: 28px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex: none;
+}
+.menu-item:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+}
+.menu-item.on {
+  color: var(--accent, #fff);
+  background: rgba(255, 255, 255, 0.14);
+}
+.panel {
+  overflow: hidden;
+  position: relative;
+}
+.layer-expanded {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Compact music: hanya equalizer di tengah (mirip foto) */
+.c-music-only {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+.panel-viewport {
+  position: relative;
+  overflow: hidden;
+}
+.panel-track {
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+.panel-slide {
+  flex: none;
+  overflow: hidden;
+}
+
+/* Compact isi penuh + center — equalizer tidak bisa loncat ke tepi */
+.compact-fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.compact-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+.compact-timer .c-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff9f0a;
+  font-variant-numeric: tabular-nums;
+}
+.expanded-fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.expanded-fill .panel-viewport {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Pengaturan — glass list ala macOS */
+.settings-glass {
+  height: 100%;
+  padding: 6px 20px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-glass::-webkit-scrollbar {
+  width: 4px;
+}
+.settings-glass::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+.set-group-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 0 4px 4px;
+}
+.set-list {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.set-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.set-row:last-child {
+  border-bottom: 0;
+}
+.set-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.set-row.on {
+  background: rgba(255, 255, 255, 0.1);
+}
+.set-row-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+.set-row-icon.size-icon {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.06)
+  );
+}
+.set-row-icon.menu-icon {
+  background: var(--accent, #ff6bd6);
+  color: #111;
+  opacity: 0.95;
+}
+.set-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.set-row-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.set-row-hint {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.2;
+}
+.set-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #111;
+}
+.set-check.on {
+  background: var(--accent, #30d158);
+  border-color: transparent;
+}
+.set-list-colors {
+  padding: 10px 12px;
+}
+.set-color-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.set-color {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--c);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.set-color:hover {
+  transform: scale(1.12);
+}
+.set-color.on {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px rgba(255, 255, 255, 0.25);
+}
+
+/* —— Prayer —— */
+.prayer {
+  height: 100%;
+  padding: 4px 22px 8px;
+  display: flex;
+  gap: 16px;
+}
+.prayer-left {
+  width: 42%;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.prayer-next-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent, #0a84ff);
+}
+.prayer-countdown {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.prayer-next-time {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+.prayer-tomorrow {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.prayer-place {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.prayer-place small {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 2px;
+}
+.prayer-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.prayer-meta {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+}
+.prayer-arc {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.prayer-node {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.prayer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px transparent;
+}
+.prayer-node.done .prayer-dot {
+  background: rgba(255, 255, 255, 0.35);
+}
+.prayer-node.active .prayer-dot {
+  background: var(--accent, #0a84ff);
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--accent, #0a84ff) 25%, transparent);
+}
+.prayer-node-name {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.prayer-node.active .prayer-node-name {
+  color: var(--accent, #0a84ff);
+  font-weight: 600;
+}
+.prayer-node-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+}
+.prayer-node.active .prayer-node-time {
+  color: #fff;
+  font-weight: 600;
+}
+.prayer-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.prayer-pill {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+}
+.prayer-pill.on {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* —— Notif apps —— */
+.notif-apps {
+  height: 100%;
+  padding: 6px 22px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notif-apps-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 2px;
+}
+.notif-apps-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.notif-app-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.notif-app-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  flex: none;
+}
+.notif-app-from {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+.notif-app-item .title {
+  font-size: 12.5px;
+}
+.notif-app-item .sub {
+  font-size: 11px;
+}
+
+/* —— Todo list —— */
+.todo {
+  height: 100%;
+  padding: 6px 22px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.todo-add {
+  display: flex;
+  gap: 6px;
+}
+.todo-add input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+.todo-add input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.todo-add-btn {
+  width: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.todo-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.todo-empty {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 16px;
+}
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.todo-item.done .todo-text {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.35);
+}
+.todo-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.todo-item.done .todo-check {
+  background: var(--accent, #30d158);
+  border-color: transparent;
+}
+.todo-text {
+  flex: 1;
+  font-size: 12.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* —— Clock slide —— */
+.clock-slide {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.clock-big {
+  font-size: 48px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.clock-sec {
+  font-size: 22px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 6px;
+}
+.clock-date {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
