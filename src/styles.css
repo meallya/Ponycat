@@ -112,6 +112,38 @@ button {
   border-radius: 0 0 16px 16px;
 }
 
+/* Warna notch tertutup mengikuti cover album saat lirik tampil.
+   Variabel didaftarkan sebagai <color> supaya pergantian warna antar lagu bisa memudar halus. */
+@property --tint-a {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #000;
+}
+@property --tint-b {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #000;
+}
+.compact-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    var(--tint-b) 0%,
+    var(--tint-a) 50%,
+    var(--tint-b) 100%
+  );
+  transition:
+    opacity 0.45s ease,
+    --tint-a 0.7s ease,
+    --tint-b 0.7s ease;
+}
+.compact-tint.on {
+  opacity: 1;
+}
+
 /* Isi pill: ukuran tetap, ditaruh di tengah, dipotong oleh pill */
 .layer {
   position: absolute;
@@ -670,7 +702,7 @@ button {
 .lyrics-line {
   font-size: 11.5px;
   line-height: 1.35;
-  color: rgba(255, 255, 255, 0.28);
+  color: color-mix(in srgb, var(--tint-fg, #fff) 28%, transparent);
   text-align: center;
   padding: 3px 6px;
   transition:
@@ -692,7 +724,7 @@ button {
   letter-spacing: 0.01em;
 }
 .lyrics-line.on {
-  color: #fff;
+  color: var(--tint-fg, #fff);
   font-weight: 600;
 }
 .lyrics-line.on .lyric-roma {

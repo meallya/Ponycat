@@ -11,7 +11,7 @@ const CSS = `
 .clyr { padding: 0 18px; }
 .clyr-box { flex: 1; min-width: 0; overflow: hidden; text-align: center; white-space: nowrap; animation: clyr-in .22s ease-out both; }
 .clyr-box.fade { -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
-.clyr-text { display: inline-block; font-size: 12.5px; font-weight: 500; letter-spacing: -0.01em; color: rgba(255,255,255,.92); will-change: transform; }
+.clyr-text { display: inline-block; font-size: 12.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--clyr-fg, rgba(255,255,255,.92)); will-change: transform; transition-property: color; transition-duration: .5s; }
 @keyframes clyr-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 `;
 
@@ -58,7 +58,7 @@ function LyricText({ text, span }) {
 
 // Isi notch tertutup saat lagu diputar dan liriknya punya timestamp.
 // Di jeda instrumental (baris kosong) dan sebelum baris pertama, tampil equalizer seperti biasa.
-export default function CompactLyric({ lyrics, media }) {
+export default function CompactLyric({ lyrics, media, tint }) {
   const idx = useLyricIndex(lyrics, media);
   const line = idx >= 0 ? lyrics.lines[idx] : null;
   const text = line
@@ -77,7 +77,10 @@ export default function CompactLyric({ lyrics, media }) {
   const span = next ? next.t - line.t : 4; // lama baris ini dinyanyikan (detik)
 
   return (
-    <div className="compact-inner clyr">
+    <div
+      className="compact-inner clyr"
+      style={tint ? { "--clyr-fg": tint.fg } : undefined}
+    >
       <style>{CSS}</style>
       {/* key = idx: setiap baris baru dipasang ulang, jadi animasi masuk dan ukurannya dihitung ulang */}
       <LyricText key={idx} text={text} span={span} />

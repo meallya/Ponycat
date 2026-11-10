@@ -16,7 +16,8 @@ export const SLIDES = ALL_SLIDES;
 export const SLIDE = Object.fromEntries(ALL_SLIDES.map((s, i) => [s.id, i]));
 
 export const BASE_EXPANDED = { w: 580, h: 200 };
-export const BASE_COMPACT = { w: 128, h: 34 };
+// Notch tertutup agak memanjang ke samping supaya wajah kucing tidak terlihat sempit
+export const BASE_COMPACT = { w: 168, h: 34 };
 // Notch tertutup saat lirik tampil: lebih lebar supaya satu baris lirik muat
 export const BASE_COMPACT_LYRIC = { w: 300, h: 34 };
 

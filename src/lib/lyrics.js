@@ -142,6 +142,7 @@ export async function loadLyrics(track) {
     }
     if (result)
       result = { ...result, lines: await romanizeLines(result.lines) };
+    if (cache.size >= 80) cache.delete(cache.keys().next().value); // batasi memori
     cache.set(key, result);
     return result;
   } catch {

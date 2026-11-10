@@ -58,6 +58,7 @@ class MediaBridge extends EventEmitter {
     this.last = null;
     this.stopped = false;
     this.restarts = 0;
+    this.startedAt = 0;
     this.demo = null;
     this.demoTimers = [];
   }
@@ -80,6 +81,7 @@ class MediaBridge extends EventEmitter {
       .join(__dirname, "media.ps1")
       .replace("app.asar", "app.asar.unpacked");
 
+    this.startedAt = Date.now();
     this.proc = spawn(
       "powershell.exe",
       [
@@ -111,12 +113,18 @@ class MediaBridge extends EventEmitter {
     );
     this.proc.stdin.on("error", () => {});
 
+    // Helper mati (mis. Windows belum siap saat baru boot): jalankan lagi dengan jeda yang
+    // makin panjang, tapi jangan pernah menyerah. Dulu berhenti setelah 5 kali gagal, jadi
+    // kalau semuanya gagal di detik-detik awal boot, deteksi musik mati sampai app dibuka ulang.
     this.proc.on("exit", () => {
       this.proc = null;
-      if (!this.stopped && this.restarts < 5) {
-        this.restarts += 1;
-        setTimeout(() => this.spawnHelper(), 2000);
-      }
+      if (this.stopped) return;
+      if (Date.now() - this.startedAt > 60000) this.restarts = 0; // sempat stabil
+      this.restarts += 1;
+      const delay = Math.min(2000 * 2 ** Math.min(this.restarts - 1, 4), 30000);
+      setTimeout(() => {
+        if (!this.stopped && !this.proc) this.spawnHelper();
+      }, delay);
     });
   }
 

@@ -92,6 +92,8 @@ export default function Island({
   slideId,
   onSlideId,
   compactKind,
+  tint,
+  nativeCursor,
   media,
   lyrics,
   command,
@@ -136,6 +138,37 @@ export default function Island({
   const size = expanded ? expandedSize : compact;
   const slideH = Math.round(SLIDE_H * scale);
 
+  // Laporkan ukuran notch yang dituju ke main process: dipakai untuk hit-test kursor,
+  // supaya klik di luar notch selalu tembus ke aplikasi lain.
+  useEffect(() => {
+    window.island?.setBounds?.({
+      w: size.w,
+      h: size.h,
+      y: hidden ? HIDDEN_Y : 0,
+      hidden,
+    });
+  }, [size.w, size.h, hidden]);
+
+  // Isi panel yang sedang tertutup tidak perlu di-layout atau digambar sama sekali.
+  // Dibiarkan hidup sebentar setelah menutup supaya animasi tutupnya tetap mulus.
+  const [showContent, setShowContent] = useState(expanded);
+  useEffect(() => {
+    if (expanded) {
+      setShowContent(true);
+      return;
+    }
+    const t = setTimeout(() => setShowContent(false), 260);
+    return () => clearTimeout(t);
+  }, [expanded]);
+
+  // Warna cover untuk notch tertutup saat lirik tampil. Warna terakhir disimpan
+  // supaya saat memudar kembali ke hitam, warnanya tidak langsung lenyap.
+  const lastTint = useRef(null);
+  if (tint) lastTint.current = tint;
+  const tintVars = lastTint.current
+    ? { "--tint-a": lastTint.current.a, "--tint-b": lastTint.current.b }
+    : undefined;
+
   const menus = useMemo(() => {
     return ALL_SLIDES.filter((s) => settings.menus.includes(s.id));
   }, [settings.menus]);
@@ -147,6 +180,11 @@ export default function Island({
     0,
     menus.findIndex((m) => m.id === activeId),
   );
+
+  // Warna cover dipakai di dua tempat: notch tertutup saat lirik tampil, dan slide Musik
+  const tintOn =
+    Boolean(tint) &&
+    (expanded ? activeId === "music" : compactKind === "lyric");
 
   const w = expandedSize.w;
   const x = useMotionValue(-slideIndex * w);
@@ -200,13 +238,19 @@ export default function Island({
       animate={{ width: size.w, height: size.h, y: hidden ? HIDDEN_Y : 0 }}
       transition={{ width: SIZE_T, height: SIZE_T, y: VERTICAL }}
       style={{ pointerEvents: hidden ? "none" : "auto", ...accentStyle }}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
+      onMouseEnter={nativeCursor ? undefined : () => onHover(true)}
+      onMouseLeave={nativeCursor ? undefined : () => onHover(false)}
       onClick={(e) => {
         e.stopPropagation();
         handleIslandClick(e);
       }}
     >
+      <div
+        className={`compact-tint${tintOn ? " on" : ""}`}
+        style={tintVars}
+        aria-hidden="true"
+      />
+
       <AnimatePresence initial={false}>
         {!expanded && (
           <motion.div
@@ -221,6 +265,7 @@ export default function Island({
               media={media}
               timer={timer}
               lyrics={lyrics}
+              tint={tint}
             />
           </motion.div>
         )}
@@ -234,7 +279,19 @@ export default function Island({
           duration: expanded ? 0.2 : 0.08,
           delay: expanded ? 0.08 : 0,
         }}
-        style={{ pointerEvents: expanded ? "auto" : "none" }}
+        style={{
+          pointerEvents: expanded ? "auto" : "none",
+          // Ukuran tetap (sama dengan ukuran terbuka) dan ditaruh di tengah: pill hanya
+          // "membuka tirai". Tanpa ini seluruh isi panel di-layout ulang di tiap frame animasi,
+          // yang membuat notch terasa lag saat dibuka.
+          inset: "0 auto auto 50%",
+          width: expandedSize.w,
+          height: expandedSize.h,
+          marginLeft: -expandedSize.w / 2,
+          contain: "layout paint style",
+          visibility: showContent ? "visible" : "hidden",
+          contentVisibility: showContent ? "visible" : "hidden",
+        }}
       >
         <div className="menu-bar" onClick={(e) => e.stopPropagation()}>
           <div className="menu-icons">
@@ -266,6 +323,7 @@ export default function Island({
                   <MusicSlide
                     media={media}
                     lyrics={lyrics}
+                    tint={tint}
                     command={command}
                     active={expanded && activeId === "music"}
                   />

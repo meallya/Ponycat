@@ -95,8 +95,31 @@ Soal animasi: `stiffness` besar = lebih cepat, `damping` kecil = lebih membal. M
 - **Posisi geser setelah sleep atau ganti monitor**: sudah ditangani lewat `powerMonitor` dan event `screen` di `main.js`.
 - **`npm install` gagal download Electron**: cek koneksi atau VPN, lalu ulangi.
 
+## Build installer (PonycatSetup.exe)
+
+1. Taruh ikon di folder `build/`: `icon.ico` (installer dan shortcut) dan `icon.png` (ikon tray, disalin ke resources lewat `extraResources`).
+2. `npm install` lalu `npm run dist`.
+3. Hasilnya `release/PonycatSetup.exe`. Upload file itu ke **GitHub Releases**, jangan di-commit ke repo (`release/` sudah di `.gitignore`).
+
+Konfigurasi installer ada di bagian `"build"` di `package.json`. Skrip PowerShell (`electron/*.ps1`) otomatis dikeluarkan dari asar lewat `asarUnpack`.
+
+## Jalan otomatis saat Windows menyala
+
+Build terpasang mendaftarkan dirinya ke startup Windows (seperti Laragon), jadi notch aktif sendiri setelah login. Cara kerjanya:
+
+- `app.setLoginItemSettings` di `electron/main.js` (hanya untuk build terpasang, tidak aktif saat `npm run dev`). Default aktif; matikan lewat menu tray: **Jalankan saat Windows menyala**.
+- Saat dibuka otomatis, app menunggu desktop siap dulu (jeda singkat + cek layar), mencoba membuat ikon tray berulang kali sampai taskbar siap, menunda helper PowerShell beberapa detik, dan memposisikan ulang window beberapa kali karena resolusi sering baru stabil setelah boot.
+- Helper musik dan notifikasi yang gagal saat boot dijalankan ulang dengan jeda makin panjang, tidak pernah berhenti permanen.
+
+## Klik tembus dan hover
+
+Posisi kursor dibaca langsung oleh main process (`cursorTick` di `electron/main.js`), bukan dari event mouse DOM. Klik hanya ditangkap kalau kursor tepat di atas notch; di luar notch klik selalu tembus ke aplikasi lain. Ini juga mencegah menu notch macet setelah dipakai berjam-jam.
+
+## Warna notch mengikuti cover album
+
+Saat lirik tampil di notch tertutup, dan di slide Musik, latar dan teks lirik mengikuti warna dominan cover lagu (`src/lib/albumArt.js`, `src/hooks/useAlbumTint.js`). Kalau cover tidak terbaca, notch tetap hitam.
+
 ## Langkah berikutnya
 
-- **Bundle jadi .exe**: pakai `electron-builder`. Tambahkan `electron/media.ps1` ke `asarUnpack` supaya PowerShell bisa membacanya.
-- **Auto start saat Windows menyala**: `app.setLoginItemSettings({ openAtLogin: true })` (efektif setelah dipaketkan).
 - **Notifikasi sungguhan**: lihat bagian Keterbatasan.
+- **Tanda tangan digital (code signing)** untuk installer, supaya Windows Security tidak memblokir `PonycatSetup.exe` dan uninstaller-nya.

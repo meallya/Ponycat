@@ -6,6 +6,15 @@ contextBridge.exposeInMainWorld("island", {
   setFocusable: (focusable) =>
     ipcRenderer.invoke("island:focusable", focusable),
 
+  // Ukuran notch yang sedang dituju: main process memakainya untuk hit-test kursor
+  setBounds: (rect) => ipcRenderer.send("island:bounds", rect),
+  // Posisi kursor dari main process: { hover: di atas notch?, zone: di zona atas layar? }
+  onCursor: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("island:cursor", handler);
+    return () => ipcRenderer.removeListener("island:cursor", handler);
+  },
+
   // Pintasan global (Ctrl+Alt+Space): buka island ke pencarian aplikasi
   onOpenSearch: (callback) => {
     const handler = () => callback();

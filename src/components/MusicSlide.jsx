@@ -12,55 +12,14 @@ import {
 import { fmtTime, prettyApp } from "../lib/format.js";
 import { findLine } from "../lib/lyrics.js";
 import { LYRIC_LEAD } from "../hooks/useLyrics.js";
+import { fetchAlbumArt } from "../lib/albumArt.js";
 
 const clamp = (v, max) => Math.max(0, max > 0 ? Math.min(v, max) : v);
 
 // Update posisi lewat rAF supaya lirik ikut frame, bukan interval kasar.
 const TICK_MS = 50;
 
-const artCache = new Map();
-
-// Fallback cover album: iTunes Search API (gratis, tanpa API key).
-// Dipakai kalau media.thumbnail dari Windows kosong / gagal dimuat.
-async function fetchAlbumArt(title, artist, album) {
-  const key = `${title}|${artist}|${album}`.toLowerCase();
-  if (artCache.has(key)) return artCache.get(key);
-  try {
-    const q = new URLSearchParams({
-      term: [title, artist].filter(Boolean).join(" "),
-      media: "music",
-      entity: "song",
-      limit: "10",
-    });
-    const res = await fetch(`https://itunes.apple.com/search?${q}`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) throw new Error("fail");
-    const { results = [] } = await res.json();
-
-    const norm = (s) => (s || "").toLowerCase();
-    const mainArtist = norm(artist)
-      .split(/,|&|feat\.?/)[0]
-      .trim();
-    const sameArtist = results.filter(
-      (r) => !mainArtist || norm(r.artistName).includes(mainArtist),
-    );
-    const pool = sameArtist.length ? sameArtist : results;
-    const hit =
-      pool.find((r) => album && norm(r.collectionName).includes(norm(album))) ||
-      pool[0];
-
-    // artworkUrl100 -> versi 600x600
-    const url =
-      hit?.artworkUrl100?.replace(/\/\d+x\d+bb\./, "/600x600bb.") || null;
-    artCache.set(key, url);
-    return url;
-  } catch {
-    return null; // gagal jaringan: jangan di-cache, boleh dicoba lagi
-  }
-}
-
-export default function MusicSlide({ media, command, active, lyrics }) {
+export default function MusicSlide({ media, command, active, lyrics, tint }) {
   const [pos, setPos] = useState(0);
   const [nativeFailed, setNativeFailed] = useState(false);
   const [webArt, setWebArt] = useState(null);
@@ -157,7 +116,10 @@ export default function MusicSlide({ media, command, active, lyrics }) {
   const art = (!nativeFailed && nativeArt) || webArt;
 
   return (
-    <div className="music music-split">
+    <div
+      className="music music-split"
+      style={tint ? { "--tint-fg": tint.fg } : undefined}
+    >
       <div className="music-left">
         {/* Cover album seperti Spotify */}
         <div className="album-art-wrap">

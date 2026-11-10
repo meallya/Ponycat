@@ -4,9 +4,9 @@ import CompactLyric from "./CompactLyric.jsx";
 import { IconTimer } from "./icons.jsx";
 import { fmtTimer } from "../lib/format.js";
 
-export default function Compact({ kind, media, timer, lyrics }) {
+export default function Compact({ kind, media, timer, lyrics, tint }) {
   if (kind === "lyric") {
-    return <CompactLyric lyrics={lyrics} media={media} />;
+    return <CompactLyric lyrics={lyrics} media={media} tint={tint} />;
   }
   if (kind === "music") {
     return (

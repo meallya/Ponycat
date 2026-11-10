@@ -3,6 +3,7 @@ import Island from "./components/Island.jsx";
 import { useMedia } from "./hooks/useMedia.js";
 import { useLyrics } from "./hooks/useLyrics.js";
 import { useTimer } from "./hooks/useTimer.js";
+import { useAlbumTint } from "./hooks/useAlbumTint.js";
 import { beep } from "./lib/beep.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "./lib/layout.js";
 
@@ -10,6 +11,12 @@ const AUTO_HIDE = 4000;
 const COLLAPSE = 2500;
 const POPUP = 4000;
 const DWELL = 150;
+
+// Di Electron, posisi kursor (hover notch + zona atas) datang dari main process.
+// Event mouse DOM hanya dipakai kalau halaman dibuka di browser biasa.
+const NATIVE_CURSOR = Boolean(
+  typeof window !== "undefined" && window.island?.onCursor,
+);
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -37,6 +44,9 @@ export default function App() {
 
   const { media, command } = useMedia();
   const lyrics = useLyrics(media);
+  // Warna notch mengikuti cover album: di notch tertutup saat lirik tampil, dan di slide Musik.
+  // Hasilnya di-cache per cover, jadi aman dihitung selama ada lagu.
+  const tint = useAlbumTint(media, Boolean(media?.hasSession && media.title));
 
   const attention = useCallback((id) => {
     if (live.current.hovered || live.current.pinned) return;
@@ -110,8 +120,9 @@ export default function App() {
     return () => clearTimeout(t);
   }, [expanded, hovered, zone, pinned, hidden]);
 
-  /* Mouse ignore */
+  /* Mouse ignore (hanya fallback di browser; di Electron diatur main process) */
   useEffect(() => {
+    if (NATIVE_CURSOR) return;
     if (hidden) {
       window.island?.setIgnoreMouse(true);
       return;
@@ -166,6 +177,26 @@ export default function App() {
     },
     [onHover, pinned],
   );
+
+  /* Posisi kursor dari main process (hover notch + zona atas layar) */
+  const cursorFns = useRef({});
+  cursorFns.current = { onIslandHover, onZoneEnter, onZoneLeave };
+  useEffect(() => {
+    if (!NATIVE_CURSOR) return;
+    const prev = { hover: false, zone: false };
+    return window.island.onCursor(({ hover, zone }) => {
+      const f = cursorFns.current;
+      if (zone !== prev.zone) {
+        prev.zone = zone;
+        if (zone) f.onZoneEnter();
+        else f.onZoneLeave();
+      }
+      if (hover !== prev.hover) {
+        prev.hover = hover;
+        f.onIslandHover(hover);
+      }
+    });
+  }, []);
 
   /* Settings */
   const onSettings = useCallback((next) => {
@@ -368,17 +399,17 @@ export default function App() {
     <div className="stage" onClick={onStageClick}>
       <div
         className={`open-hint ${hidden && !zone ? "show" : ""}`}
-        onMouseEnter={onZoneEnter}
-        onMouseMove={onZoneEnter}
-        onMouseLeave={onZoneLeave}
+        onMouseEnter={NATIVE_CURSOR ? undefined : onZoneEnter}
+        onMouseMove={NATIVE_CURSOR ? undefined : onZoneEnter}
+        onMouseLeave={NATIVE_CURSOR ? undefined : onZoneLeave}
         title="Arahkan kursor ke sini untuk membuka"
       />
       {/* Zona atas lebih lebar: kursor ke atas → buka */}
       <div
         className="hotzone"
-        onMouseEnter={onZoneEnter}
-        onMouseMove={onZoneEnter}
-        onMouseLeave={onZoneLeave}
+        onMouseEnter={NATIVE_CURSOR ? undefined : onZoneEnter}
+        onMouseMove={NATIVE_CURSOR ? undefined : onZoneEnter}
+        onMouseLeave={NATIVE_CURSOR ? undefined : onZoneLeave}
       />
       <Island
         expanded={expanded}
@@ -386,6 +417,8 @@ export default function App() {
         slideId={slideId}
         onSlideId={setSlideId}
         compactKind={compactKind}
+        tint={tint}
+        nativeCursor={NATIVE_CURSOR}
         media={media}
         lyrics={lyrics}
         command={command}

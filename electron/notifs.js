@@ -10,6 +10,7 @@ class NotifBridge extends EventEmitter {
     this.last = { ok: false, items: [] }
     this.stopped = false
     this.restarts = 0
+    this.startedAt = 0
   }
 
   start() {
@@ -23,6 +24,7 @@ class NotifBridge extends EventEmitter {
 
   spawnHelper() {
     const script = path.join(__dirname, 'notifs.ps1').replace('app.asar', 'app.asar.unpacked')
+    this.startedAt = Date.now()
     this.proc = spawn(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script],
@@ -44,12 +46,16 @@ class NotifBridge extends EventEmitter {
     this.proc.stderr.on('data', (d) => console.error('[notifs]', String(d).trim()))
     this.proc.stdin.on('error', () => {})
 
+    // Jalankan lagi dengan jeda yang makin panjang; jangan menyerah (lihat media.js)
     this.proc.on('exit', () => {
       this.proc = null
-      if (!this.stopped && this.restarts < 5) {
-        this.restarts += 1
-        setTimeout(() => this.spawnHelper(), 3000)
-      }
+      if (this.stopped) return
+      if (Date.now() - this.startedAt > 60000) this.restarts = 0
+      this.restarts += 1
+      const delay = Math.min(3000 * 2 ** Math.min(this.restarts - 1, 4), 30000)
+      setTimeout(() => {
+        if (!this.stopped && !this.proc) this.spawnHelper()
+      }, delay)
     })
   }
 

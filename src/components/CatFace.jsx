@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 
-// Wajah kucing untuk notch "Ponycat" (ukuran dasar 128 x 34, lihat BASE_COMPACT di layout.js).
+// Wajah kucing untuk notch "Ponycat" (ukuran dasar 168 x 34, lihat BASE_COMPACT di layout.js).
 // Sama dengan ucing di ikon aplikasi: badan hitam menyatu dengan notch, mata bulat dengan
 // cincin kuning dan kilau putih, pipi pink bergaris, dan dua kumis putih tipis di tiap sisi.
 // Mata melirik pelan dan berkedip, pipi "bernapas" pelan.
 // Warna mata bisa diganti lewat CSS variable --cat-eye (default kuning seperti di ikon).
 
-const W = 128;
+const W = 128; // lebar kanvas wajah (koordinat di bawah dihitung untuk lebar ini)
 const H = 34;
 const CX = W / 2; // sumbu tengah wajah
+// Lebar notch tertutup. Wajah digeser ke tengah, sisa ruang jadi napas di kiri-kanan.
+const NOTCH_W = 168;
+const PAD_X = (NOTCH_W - W) / 2;
 const BASE_Y = 17; // pusat mata (naik/turunkan untuk geser vertikal)
 const EYES_X = [49, 79]; // pusat tiap mata (jauhkan = lebih lega, dekatkan = lebih imut)
 const R = 5.6; // jari-jari cincin mata saat terbuka
@@ -178,7 +181,7 @@ export default function CatFace() {
 
   return (
     <svg
-      viewBox={`0 0 ${W} ${H}`}
+      viewBox={`0 0 ${NOTCH_W} ${H}`}
       role="img"
       aria-label="Wajah kucing"
       style={{
@@ -213,6 +216,7 @@ export default function CatFace() {
         </filter>
       </defs>
 
+      <g transform={`translate(${PAD_X} 0)`}>
       {/* mata bergeser lebih jauh daripada pipi dan kumis: kesan kedalaman halus */}
       <g
         className="cat-move"
@@ -230,6 +234,7 @@ export default function CatFace() {
         {CHEEK_X.map((x) => (
           <Cheek key={x} cx={x} side={x < CX ? -1 : 1} />
         ))}
+      </g>
       </g>
     </svg>
   );
