@@ -96,6 +96,8 @@ export default function Island({
   nativeCursor,
   media,
   lyrics,
+  adPlaying,
+  switching,
   command,
   timer,
   tempItems,
@@ -107,6 +109,8 @@ export default function Island({
   onNoteSelect,
   onNoteChange,
   onNoteNew,
+  onNoteDate,
+  onOpenDate,
   onNoteDelete,
   onNotesFocus,
   notifs,
@@ -223,7 +227,7 @@ export default function Island({
     }
     if (
       e.target.closest(
-        "button, textarea, input, .notes-list, .temp, .lyrics, .menu-bar, .controls, .chips, .settings-glass, .todo, .prayer, .notif-apps, .srch, .cv",
+        "button, textarea, input, .notes-list, .notes-date, .cal, .temp, .lyrics, .menu-bar, .controls, .chips, .settings-glass, .todo, .prayer, .notif-apps, .srch, .cv",
       )
     ) {
       return;
@@ -266,6 +270,7 @@ export default function Island({
               timer={timer}
               lyrics={lyrics}
               tint={tint}
+              loading={switching}
             />
           </motion.div>
         )}
@@ -323,6 +328,8 @@ export default function Island({
                   <MusicSlide
                     media={media}
                     lyrics={lyrics}
+                    adPlaying={adPlaying}
+                    switching={switching}
                     tint={tint}
                     command={command}
                     active={expanded && activeId === "music"}
@@ -353,11 +360,14 @@ export default function Island({
                     onSelect={onNoteSelect}
                     onChange={onNoteChange}
                     onNew={onNoteNew}
+                    onDate={onNoteDate}
                     onDelete={onNoteDelete}
                     onFocusChange={onNotesFocus}
                   />
                 )}
-                {s.id === "clock" && <ClockSlide />}
+                {s.id === "clock" && (
+                  <ClockSlide notes={notes} onOpenDate={onOpenDate} />
+                )}
                 {s.id === "search" && (
                   <SearchSlide
                     onFocusChange={onNotesFocus}

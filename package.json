@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:127.0.0.1:5173 && cross-env DEV=1 electron .\"",
-    "demo": "cross-env ISLAND_DEMO_MEDIA=1 npm run dev",
+    "demo": "cross-env ISLAND_DEMO_MEDIA=1 ISLAND_DEMO_NOTIFS=1 npm run dev",
     "build": "vite build",
     "start": "vite build && electron .",
     "dist": "vite build && electron-builder --win nsis --x64"

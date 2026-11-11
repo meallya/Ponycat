@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { dateKey } from "../lib/dates.js";
 
 // Nama hari/bulan ditulis manual (bukan toLocaleDateString), jadi tampil
 // berbahasa Indonesia di laptop mana pun, apa pun bahasa Windows-nya.
@@ -40,8 +41,10 @@ function buildMonth(year, month) {
   return cells;
 }
 
-export default function ClockSlide() {
+export default function ClockSlide({ notes = [], onOpenDate }) {
   const [now, setNow] = useState(() => new Date());
+  // 0 = bulan ini, -1 = bulan lalu, +1 = bulan depan, dst.
+  const [offset, setOffset] = useState(0);
   useEffect(() => {
     let id;
     const tick = () => {
@@ -52,9 +55,19 @@ export default function ClockSlide() {
     return () => clearTimeout(id);
   }, []);
 
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const today = now.getDate();
+  const view = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const year = view.getFullYear();
+  const month = view.getMonth();
+  const today = offset === 0 ? now.getDate() : 0; // 0 = tidak ada "hari ini" di bulan ini
+  // Jumlah catatan (yang ada isinya) per tanggal, untuk titik penanda
+  const counts = useMemo(() => {
+    const m = new Map();
+    for (const n of notes) {
+      if (n.date && (n.text || "").trim())
+        m.set(n.date, (m.get(n.date) || 0) + 1);
+    }
+    return m;
+  }, [notes]);
   const todayWeekday = now.getDay();
   const cells = buildMonth(year, month);
   const weekdays = Array.from(
@@ -79,11 +92,37 @@ export default function ClockSlide() {
       </div>
 
       <div
+        className="cal"
         aria-label={`Kalender ${MONTHS[month]} ${year}`}
         style={{ width: CELL_W * 7 }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-          {MONTHS[month]} {year}
+        <div className="cal-head">
+          <button
+            type="button"
+            className="cal-title"
+            title="Kembali ke bulan ini"
+            onClick={() => setOffset(0)}
+          >
+            {MONTHS[month]} {year}
+          </button>
+          <span className="cal-nav-group">
+            <button
+              type="button"
+              className="cal-nav"
+              aria-label="Bulan sebelumnya"
+              onClick={() => setOffset((o) => o - 1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="cal-nav"
+              aria-label="Bulan berikutnya"
+              onClick={() => setOffset((o) => o + 1)}
+            >
+              ›
+            </button>
+          </span>
         </div>
 
         <div
@@ -119,13 +158,26 @@ export default function ClockSlide() {
             if (d === null) return <div key={`b${i}`} />;
             const isToday = d === today;
             const isSunday = (WEEK_STARTS_ON + (i % 7)) % 7 === 0;
+            const key = dateKey(year, month, d);
+            const count = counts.get(key) || 0;
             return (
-              <div
+              <button
+                type="button"
                 key={d}
+                className="cal-day"
                 aria-current={isToday ? "date" : undefined}
+                aria-label={`${d} ${MONTHS[month]} ${year}, ${count ? `${count} catatan` : "buat catatan"}`}
+                title={count ? `${count} catatan` : "Buat catatan"}
+                onClick={() => onOpenDate?.(key)}
                 style={{
+                  position: "relative",
                   width: CELL_H,
                   height: CELL_H,
+                  padding: 0,
+                  border: 0,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: "inherit",
                   borderRadius: "50%",
                   display: "grid",
                   placeItems: "center",
@@ -139,7 +191,13 @@ export default function ClockSlide() {
                 }}
               >
                 {d}
-              </div>
+                {count > 0 && (
+                  <span
+                    className="cal-dot"
+                    style={{ background: isToday ? "#000" : "#5ac8fa" }}
+                  />
+                )}
+              </button>
             );
           })}
         </div>

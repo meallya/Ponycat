@@ -120,7 +120,7 @@ export async function lookupLyrics({ title, artist, album, duration }) {
   return best();
 }
 
-// Hasil: { synced: boolean, lines: [{ t, text, roma? }] } atau null
+// Hasil: { synced: boolean, lines: [{ t, text, roma? }], duration } atau null
 export async function loadLyrics(track) {
   const key =
     `${track.title}|${track.artist}|${Math.round(track.duration || 0)}`.toLowerCase();
@@ -130,7 +130,8 @@ export async function loadLyrics(track) {
     let result = null;
     if (hit?.syncedLyrics) {
       const lines = parseLrc(hit.syncedLyrics);
-      if (lines.length) result = { synced: true, lines };
+      if (lines.length)
+        result = { synced: true, lines, duration: hit.duration || 0 };
     }
     if (!result && hit?.plainLyrics) {
       const lines = hit.plainLyrics
@@ -138,7 +139,8 @@ export async function loadLyrics(track) {
         .map((s) => s.trim())
         .filter(Boolean)
         .map((text) => ({ t: 0, text }));
-      if (lines.length) result = { synced: false, lines };
+      if (lines.length)
+        result = { synced: false, lines, duration: hit.duration || 0 };
     }
     if (result)
       result = { ...result, lines: await romanizeLines(result.lines) };

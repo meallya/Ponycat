@@ -13,13 +13,22 @@ import { fmtTime, prettyApp } from "../lib/format.js";
 import { findLine } from "../lib/lyrics.js";
 import { LYRIC_LEAD } from "../hooks/useLyrics.js";
 import { fetchAlbumArt } from "../lib/albumArt.js";
+import LoadingDots from "./LoadingDots.jsx";
 
 const clamp = (v, max) => Math.max(0, max > 0 ? Math.min(v, max) : v);
 
 // Update posisi lewat rAF supaya lirik ikut frame, bukan interval kasar.
 const TICK_MS = 50;
 
-export default function MusicSlide({ media, command, active, lyrics, tint }) {
+export default function MusicSlide({
+  media,
+  command,
+  active,
+  lyrics,
+  tint,
+  adPlaying,
+  switching,
+}) {
   const [pos, setPos] = useState(0);
   const [nativeFailed, setNativeFailed] = useState(false);
   const [webArt, setWebArt] = useState(null);
@@ -117,7 +126,7 @@ export default function MusicSlide({ media, command, active, lyrics, tint }) {
 
   return (
     <div
-      className="music music-split"
+      className={`music music-split${switching ? " switching" : ""}`}
       style={tint ? { "--tint-fg": tint.fg } : undefined}
     >
       <div className="music-left">
@@ -137,6 +146,11 @@ export default function MusicSlide({ media, command, active, lyrics, tint }) {
             />
           ) : (
             <div className="album-art album-art-fallback" />
+          )}
+          {switching && (
+            <div className="art-loading">
+              <LoadingDots />
+            </div>
           )}
         </div>
         <div className="music-info">
@@ -206,22 +220,32 @@ export default function MusicSlide({ media, command, active, lyrics, tint }) {
 
       <div className="music-right">
         <div className="lyrics" ref={lyricRef}>
-          {lyrics === undefined && (
+          {switching && (
+            <div className="lyrics-hint lyrics-loading">
+              <LoadingDots />
+            </div>
+          )}
+          {!switching && lyrics === undefined && (
             <div className="lyrics-hint">Mencari lirik…</div>
           )}
-          {lyrics === null && (
-            <div className="lyrics-hint">Lirik tidak ditemukan</div>
-          )}
-          {lyrics?.lines?.map((line, i) => (
-            <div
-              key={i}
-              data-i={i}
-              className={`lyrics-line ${i === lyricIdx ? "on" : ""} ${lyrics.synced ? "" : "plain"}`}
-            >
-              <div className="lyric-text">{line.text || " "}</div>
-              {line.roma && <div className="lyric-roma">{line.roma}</div>}
+          {!switching && lyrics === null && (
+            <div className="lyrics-hint">
+              {adPlaying
+                ? "Iklan sedang diputar, lirik disembunyikan"
+                : "Lirik tidak ditemukan"}
             </div>
-          ))}
+          )}
+          {!switching &&
+            lyrics?.lines?.map((line, i) => (
+              <div
+                key={i}
+                data-i={i}
+                className={`lyrics-line ${i === lyricIdx ? "on" : ""} ${lyrics.synced ? "" : "plain"}`}
+              >
+                <div className="lyric-text">{line.text || " "}</div>
+                {line.roma && <div className="lyric-roma">{line.roma}</div>}
+              </div>
+            ))}
         </div>
       </div>
     </div>

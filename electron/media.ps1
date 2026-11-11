@@ -104,6 +104,7 @@ $lastTrackKey = ''
 $thumb = $null
 $thumbTries = 0
 $lastEmit = [DateTime]::MinValue
+$lastPos = -1.0
 $force = $false
 
 while ($true) {
@@ -170,20 +171,30 @@ while ($true) {
             }
 
             $now = [DateTime]::UtcNow
+            # Posisi dihitung tiap putaran (murah) supaya loncatan karena seek / ganti lagu
+            # langsung terdeteksi, bukan menunggu refresh berikutnya.
+            $tl = $s.GetTimelineProperties()
+            $duration = ($tl.EndTime - $tl.StartTime).TotalSeconds
+            $pos = $tl.Position.TotalSeconds
+            if ($status -eq 'playing') {
+                $age = ([DateTimeOffset]::UtcNow - $tl.LastUpdatedTime).TotalSeconds
+                if ($age -gt 0 -and $age -lt 21600) { $pos += $age }
+            }
+            if ($duration -lt 0) { $duration = 0 }
+            if ($duration -gt 0 -and $pos -gt $duration) { $pos = $duration }
+            if ($pos -lt 0) { $pos = 0 }
+
+            $seeked = $false
+            if ($lastPos -ge 0 -and $key -eq $lastKey) {
+                $expected = $lastPos
+                if ($status -eq 'playing') { $expected += ($now - $lastEmit).TotalSeconds }
+                if ([math]::Abs($pos - $expected) -gt 1.5) { $seeked = $true }
+            }
+
             # Saat playing: refresh posisi tiap ~1s supaya lirik tidak drift.
-            # Saat paused / metadata berubah: tetap emit segera.
+            # Saat paused / metadata berubah / seek: emit segera.
             $interval = if ($status -eq 'playing') { 1.0 } else { 5.0 }
-            if ($key -ne $lastKey -or $thumbChanged -or $force -or (($now - $lastEmit).TotalSeconds -ge $interval)) {
-                $tl = $s.GetTimelineProperties()
-                $duration = ($tl.EndTime - $tl.StartTime).TotalSeconds
-                $pos = $tl.Position.TotalSeconds
-                if ($status -eq 'playing') {
-                    $age = ([DateTimeOffset]::UtcNow - $tl.LastUpdatedTime).TotalSeconds
-                    if ($age -gt 0 -and $age -lt 21600) { $pos += $age }
-                }
-                if ($duration -lt 0) { $duration = 0 }
-                if ($duration -gt 0 -and $pos -gt $duration) { $pos = $duration }
-                if ($pos -lt 0) { $pos = 0 }
+            if ($key -ne $lastKey -or $thumbChanged -or $force -or $seeked -or (($now - $lastEmit).TotalSeconds -ge $interval)) {
 
                 Emit ([ordered]@{
                     hasSession = $true
@@ -195,9 +206,11 @@ while ($true) {
                     position   = [math]::Round($pos, 2)
                     duration   = [math]::Round($duration, 1)
                     thumbnail  = $thumb
+                    ts         = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
                 })
                 $lastKey = $key
                 $lastEmit = $now
+                $lastPos = $pos
                 $force = $false
             }
         }

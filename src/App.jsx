@@ -4,6 +4,9 @@ import { useMedia } from "./hooks/useMedia.js";
 import { useLyrics } from "./hooks/useLyrics.js";
 import { useTimer } from "./hooks/useTimer.js";
 import { useAlbumTint } from "./hooks/useAlbumTint.js";
+import { useTrackSwitch } from "./hooks/useTrackSwitch.js";
+import { isAdPlaying } from "./lib/ads.js";
+import { isDateKey } from "./lib/dates.js";
 import { beep } from "./lib/beep.js";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "./lib/layout.js";
 
@@ -40,13 +43,28 @@ export default function App() {
   const leaveTimer = useRef(null);
   const saveTimer = useRef(null);
   const live = useRef({});
-  live.current = { hovered, pinned, notes, expanded };
+  live.current = { hovered, pinned, notes, expanded, activeNoteId };
 
-  const { media, command } = useMedia();
-  const lyrics = useLyrics(media);
+  const { media, command: mediaCommand } = useMedia();
+  const lyricsFound = useLyrics(media);
+  // Saat iklan (Spotify gratis, YouTube, dll.) lirik disembunyikan di notch dan slide Musik
+  const adPlaying = isAdPlaying(media, lyricsFound);
+  const lyrics = adPlaying ? null : lyricsFound;
+  // Animasi loading saat lagu berganti (tombol prev/next, atau lagu berganti sendiri)
+  const { switching, begin: beginSwitch } = useTrackSwitch(media, lyricsFound);
+  const command = useCallback(
+    (cmd) => {
+      if (cmd === "next" || cmd === "prev") beginSwitch();
+      mediaCommand(cmd);
+    },
+    [mediaCommand, beginSwitch],
+  );
   // Warna notch mengikuti cover album: di notch tertutup saat lirik tampil, dan di slide Musik.
   // Hasilnya di-cache per cover, jadi aman dihitung selama ada lagu.
-  const tint = useAlbumTint(media, Boolean(media?.hasSession && media.title));
+  const tint = useAlbumTint(
+    media,
+    Boolean(media?.hasSession && media.title) && !adPlaying,
+  );
 
   const attention = useCallback((id) => {
     if (live.current.hovered || live.current.pinned) return;
@@ -258,7 +276,12 @@ export default function App() {
               ? raw
               : [];
         if (Array.isArray(parsed) && parsed.length) {
-          setNotes(parsed);
+          // Catatan lama tanpa tanggal tetap valid; tanggal rusak dibuang
+          setNotes(
+            parsed.map((n) =>
+              n && n.date && !isDateKey(n.date) ? { ...n, date: undefined } : n,
+            ),
+          );
           setActiveNoteId(parsed[0].id);
           return;
         }
@@ -324,13 +347,81 @@ export default function App() {
     [persistNotes],
   );
 
-  const onNotesFocus = useCallback((focused) => {
-    setPinned(focused);
-    if (!focused) {
-      clearTimeout(saveTimer.current);
-      window.island?.notes?.save(JSON.stringify(live.current.notes));
-    }
-  }, []);
+  // Pasang / lepas tanggal kalender pada catatan (date = "YYYY-MM-DD" atau null)
+  const onNoteDate = useCallback(
+    (id, date) => {
+      setNotes((list) => {
+        const next = list.map((n) =>
+          n.id === id
+            ? { ...n, date: date || undefined, updatedAt: Date.now() }
+            : n,
+        );
+        persistNotes(next);
+        return next;
+      });
+    },
+    [persistNotes],
+  );
+
+  // Klik tanggal di kalender: buka catatan tanggal itu (atau buat baru kalau belum ada),
+  // lalu pindah ke slide Notes.
+  const onOpenDate = useCallback(
+    (date) => {
+      const existing = live.current.notes
+        .filter((n) => n.date === date)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+      if (existing) {
+        setActiveNoteId(existing.id);
+      } else {
+        const n = { id: uid(), text: "", date, updatedAt: Date.now() };
+        const next = [n, ...live.current.notes];
+        setNotes(next);
+        persistNotes(next);
+        setActiveNoteId(n.id);
+      }
+      setSlideId("notes");
+    },
+    [persistNotes],
+  );
+
+  // Catatan kosong yang hanya "tanggal" (dibuat dari kalender tapi tidak diisi) dibuang
+  // supaya daftar tidak penuh sampah.
+  // `keepId`: catatan yang sedang dibuka tidak ikut dibuang (mis. saat hanya kehilangan fokus).
+  const pruneEmptyDated = useCallback(
+    (keepId) => {
+      const list = live.current.notes;
+      const keep = list.filter(
+        (n) => n.id === keepId || !(n.date && !(n.text || "").trim()),
+      );
+      if (keep.length === list.length) return;
+      const next = keep.length
+        ? keep
+        : [{ id: uid(), text: "", updatedAt: Date.now() }];
+      setNotes(next);
+      persistNotes(next);
+      setActiveNoteId((cur) =>
+        next.some((n) => n.id === cur) ? cur : next[0].id,
+      );
+    },
+    [persistNotes],
+  );
+
+  const onNotesFocus = useCallback(
+    (focused) => {
+      setPinned(focused);
+      if (!focused) {
+        clearTimeout(saveTimer.current);
+        window.island?.notes?.save(JSON.stringify(live.current.notes));
+        pruneEmptyDated(live.current.activeNoteId);
+      }
+    },
+    [pruneEmptyDated],
+  );
+
+  // Keluar dari slide Notes (atau notch menutup): bersihkan catatan tanggal yang kosong
+  useEffect(() => {
+    if (!(expanded && slideId === "notes")) pruneEmptyDated();
+  }, [expanded, slideId, pruneEmptyDated]);
 
   const onTempAdd = useCallback((items) => {
     setTempItems((list) => [...items, ...list].slice(0, 20));
@@ -421,6 +512,8 @@ export default function App() {
         nativeCursor={NATIVE_CURSOR}
         media={media}
         lyrics={lyrics}
+        adPlaying={adPlaying}
+        switching={switching}
         command={command}
         timer={timer}
         tempItems={tempItems}
@@ -432,6 +525,8 @@ export default function App() {
         onNoteSelect={setActiveNoteId}
         onNoteChange={onNoteChange}
         onNoteNew={onNoteNew}
+        onNoteDate={onNoteDate}
+        onOpenDate={onOpenDate}
         onNoteDelete={onNoteDelete}
         onNotesFocus={onNotesFocus}
         notifs={notifs}

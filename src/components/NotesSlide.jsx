@@ -1,8 +1,9 @@
 import { useRef } from 'react'
 import { IconPlus, IconTrash } from './icons.jsx'
+import { fmtShort, shiftDate, todayKey } from '../lib/dates.js'
 
 // Layout mirip Apple Notes: daftar catatan di kiri, editor di kanan.
-export default function NotesSlide({ notes, activeId, onSelect, onChange, onNew, onDelete, onFocusChange }) {
+export default function NotesSlide({ notes, activeId, onSelect, onChange, onNew, onDelete, onDate, onFocusChange }) {
   const ref = useRef(null)
   const active = notes.find((n) => n.id === activeId) || notes[0]
 
@@ -38,6 +39,7 @@ export default function NotesSlide({ notes, activeId, onSelect, onChange, onNew,
               onClick={() => onSelect(n.id)}
             >
               <span className="notes-item-title">{preview(n.text)}</span>
+              {n.date && <span className="notes-item-date">{fmtShort(n.date)}</span>}
               <span
                 className="notes-item-del"
                 onClick={(e) => {
@@ -55,6 +57,46 @@ export default function NotesSlide({ notes, activeId, onSelect, onChange, onNew,
       </div>
 
       <div className="notes-editor">
+        {/* Hubungkan catatan ke tanggal: muncul di kalender (slide Clock) sebagai titik */}
+        <div className="notes-date">
+          {active?.date ? (
+            <>
+              <button
+                type="button"
+                aria-label="Mundur satu hari"
+                onClick={() => onDate(active.id, shiftDate(active.date, -1))}
+              >
+                ‹
+              </button>
+              <span className="notes-date-label" title="Tanggal di kalender">
+                {fmtShort(active.date)}
+              </span>
+              <button
+                type="button"
+                aria-label="Maju satu hari"
+                onClick={() => onDate(active.id, shiftDate(active.date, 1))}
+              >
+                ›
+              </button>
+              <button
+                type="button"
+                aria-label="Lepas dari tanggal"
+                title="Lepas dari tanggal"
+                onClick={() => onDate(active.id, null)}
+              >
+                ✕
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={!active}
+              onClick={() => active && onDate(active.id, todayKey())}
+            >
+              + Tanggal
+            </button>
+          )}
+        </div>
         <textarea
           ref={ref}
           className="notes"

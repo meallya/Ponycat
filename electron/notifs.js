@@ -3,6 +3,16 @@ const { EventEmitter } = require('events')
 const path = require('path')
 const readline = require('readline')
 
+// Notifikasi contoh untuk mode demo (npm run demo): melihat tampilan slide Notifikasi
+// tanpa izin Windows. Waktunya dibuat relatif terhadap sekarang.
+const ago = (min) => new Date(Date.now() - min * 60000).toISOString()
+const demoItems = () => [
+  { id: 1, app: 'whatsapp', appName: 'WhatsApp', appId: 'demo.whatsapp', from: 'Aldi', body: 'Bro, jadi rapat jam 3?', time: ago(1) },
+  { id: 2, app: 'telegram', appName: 'Telegram', appId: 'demo.telegram', from: 'Grup Kampus', body: 'Dosen: tugas dikumpul besok', time: ago(6) },
+  { id: 3, app: 'gmail', appName: 'Gmail', appId: 'demo.gmail', from: 'GitHub', body: 'Run failed: Ponycat build #12', time: ago(14) },
+  { id: 4, app: 'other', appName: 'Windows Security', appId: 'demo.other', from: 'Pembaruan selesai', body: 'Perangkat kamu sudah aman', time: ago(32) },
+]
+
 class NotifBridge extends EventEmitter {
   constructor() {
     super()
@@ -15,6 +25,7 @@ class NotifBridge extends EventEmitter {
 
   start() {
     this.stopped = false
+    if (process.env.ISLAND_DEMO_NOTIFS === '1') return this.startDemo()
     if (process.platform !== 'win32') {
       console.log('[notifs] hanya Windows')
       return
@@ -59,7 +70,28 @@ class NotifBridge extends EventEmitter {
     })
   }
 
+  // ---------- Mode demo ----------
+
+  startDemo() {
+    console.log('[notifs] mode demo aktif')
+    this.demo = demoItems()
+    this.pushDemo()
+    // Kirim lagi setelah window selesai dimuat
+    setTimeout(() => this.pushDemo(), 2500)
+  }
+
+  pushDemo() {
+    this.last = { ok: true, access: 'Allowed', items: this.demo }
+    this.emit('update', this.last)
+  }
+
   command(cmd) {
+    if (this.demo) {
+      const [name, arg] = String(cmd).trim().split(/\s+/, 2)
+      if (name === 'clear') this.demo = []
+      if (name === 'dismiss') this.demo = this.demo.filter((n) => String(n.id) !== arg)
+      return this.pushDemo()
+    }
     if (!this.proc?.stdin?.writable) return
     try {
       this.proc.stdin.write(String(cmd) + '\n')

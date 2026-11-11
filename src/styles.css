@@ -1128,6 +1128,12 @@ button {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-direction: column;
+}
+.notes-editor .notes {
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 .notes {
   width: 100%;
@@ -1710,4 +1716,211 @@ button {
 .clock-date {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- Animasi loading saat lagu berganti ---------- */
+.ld {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--clyr-fg, rgba(255, 255, 255, 0.92));
+}
+.ld i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: ld-bounce 0.95s ease-in-out infinite;
+}
+.ld i:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.ld i:nth-child(3) {
+  animation-delay: 0.28s;
+}
+@keyframes ld-bounce {
+  0%,
+  65%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+@keyframes ld-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+/* Slide Musik: cover redup + titik di atasnya, info lagu berdenyut, lirik diganti titik */
+.art-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: ld-fade-in 0.2s ease both;
+}
+@keyframes ld-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.music-split.switching .album-art {
+  filter: saturate(0.6) brightness(0.75);
+  transition: filter 0.2s;
+}
+.music-split.switching .music-info .title,
+.music-split.switching .music-info .sub {
+  animation: ld-pulse 1.1s ease-in-out infinite;
+}
+.lyrics-loading {
+  display: flex;
+  justify-content: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ld i {
+    animation: ld-pulse 1.4s ease-in-out infinite;
+    transform: none;
+  }
+}
+
+/* ---------- Kalender <-> Notes ---------- */
+.notes-date {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px 2px;
+  font-size: 10.5px;
+}
+.notes-date button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 10.5px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.notes-date button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+.notes-date button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.notes-date-label {
+  padding: 0 4px;
+  color: #5ac8fa;
+  font-variant-numeric: tabular-nums;
+}
+.notes-item-date {
+  display: block;
+  margin-top: 1px;
+  font-size: 9.5px;
+  color: #5ac8fa;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.cal-title,
+.cal-nav {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cal-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cal-nav-group {
+  display: flex;
+  gap: 2px;
+}
+.cal-nav {
+  width: 20px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1;
+}
+.cal-nav:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.cal-day:not([aria-current]):hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+.cal-dot {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+}
+
+/* ---------- Pomodoro (di dalam slide Timer) ---------- */
+.timer-digits.break {
+  color: #30d158;
+}
+.pomo-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.pomo-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.pomo-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.2s ease;
+}
+.pomo-dots i.full {
+  background: #ff453a;
+}
+.pomo-plans {
+  display: inline-flex;
+  gap: 4px;
+}
+.pomo-plan {
+  border: 0;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+.pomo-plan.on {
+  background: rgba(255, 255, 255, 0.85);
+  color: #000;
 }

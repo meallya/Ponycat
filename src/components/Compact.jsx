@@ -1,10 +1,22 @@
 import Eq from "./Eq.jsx";
 import CatFace from "./CatFace.jsx";
 import CompactLyric from "./CompactLyric.jsx";
+import LoadingDots from "./LoadingDots.jsx";
 import { IconTimer } from "./icons.jsx";
 import { fmtTimer } from "../lib/format.js";
 
-export default function Compact({ kind, media, timer, lyrics, tint }) {
+export default function Compact({ kind, media, timer, lyrics, tint, loading }) {
+  // Lagu sedang berganti: titik loading menggantikan lirik / equalizer
+  if (loading && (kind === "lyric" || kind === "music")) {
+    return (
+      <div
+        className="compact-inner"
+        style={tint ? { "--clyr-fg": tint.fg } : undefined}
+      >
+        <LoadingDots />
+      </div>
+    );
+  }
   if (kind === "lyric") {
     return <CompactLyric lyrics={lyrics} media={media} tint={tint} />;
   }

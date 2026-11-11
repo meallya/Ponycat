@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconPlay, IconPause, IconReset } from "./icons.jsx";
 import { fmtTimer } from "../lib/format.js";
+import { POMO_PLANS, POMO_ROUND, PHASE_LABEL } from "../hooks/useTimer.js";
 
 const PRESETS = [5, 10, 15, 25];
 const MAX_MIN = 99; // tampilan MM:SS, jadi dibatasi 99 menit. Naikkan kalau fmtTimer mendukung jam.
@@ -13,7 +14,15 @@ export default function TimerSlide({ timer }) {
   const [value, setValue] = useState("");
   const inputRef = useRef(null);
 
-  const state = timer.done ? "done" : timer.running ? "run" : "";
+  const pomo = timer.pomo;
+  const onBreak = pomo.on && pomo.phase !== "focus";
+  const state = timer.done
+    ? "done"
+    : onBreak
+      ? "break"
+      : timer.running
+        ? "run"
+        : "";
 
   // Chip terakhir: "Atur" kalau durasi sama dengan salah satu preset,
   // atau menampilkan durasi custom-nya (mis. "12m") kalau bukan.
@@ -86,7 +95,40 @@ export default function TimerSlide({ timer }) {
       </div>
 
       <div className="chips">
-        {timer.done ? (
+        {pomo.on ? (
+          <>
+            {["focus", "short", "long"].map((ph) => (
+              <button
+                type="button"
+                key={ph}
+                className={`chip ${pomo.phase === ph ? "on" : ""}`}
+                disabled={timer.running && pomo.phase !== ph}
+                onClick={() => pomo.pickPhase(ph)}
+              >
+                {PHASE_LABEL[ph]}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="chip"
+              aria-label="Lewati fase ini"
+              title="Lewati fase ini"
+              onClick={pomo.skip}
+            >
+              Lewati
+            </button>
+            <button
+              type="button"
+              className="chip"
+              disabled={timer.running}
+              aria-label="Kembali ke timer biasa"
+              title="Kembali ke timer biasa"
+              onClick={pomo.stop}
+            >
+              ✕
+            </button>
+          </>
+        ) : timer.done ? (
           <span className="chip-note">Waktu habis</span>
         ) : editing ? (
           <>
@@ -161,9 +203,45 @@ export default function TimerSlide({ timer }) {
             >
               {isPreset ? "Atur" : customLabel}
             </button>
+            <button
+              type="button"
+              className="chip pomo-chip"
+              disabled={timer.running}
+              title="Belajar dengan teknik Pomodoro"
+              onClick={pomo.start}
+            >
+              Pomodoro
+            </button>
           </>
         )}
       </div>
+      {pomo.on && (
+        <div className="pomo-info">
+          <span
+            className="pomo-dots"
+            aria-label={`Sesi ${pomo.cycle} dari ${POMO_ROUND}`}
+          >
+            {Array.from({ length: POMO_ROUND }, (_, i) => (
+              <i key={i} className={i < pomo.cycle ? "full" : ""} />
+            ))}
+          </span>
+          <span>{pomo.count} sesi fokus hari ini</span>
+          {!timer.running && (
+            <span className="pomo-plans">
+              {Object.entries(POMO_PLANS).map(([k, v]) => (
+                <button
+                  type="button"
+                  key={k}
+                  className={`pomo-plan ${pomo.plan === k ? "on" : ""}`}
+                  onClick={() => pomo.setPlan(k)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
