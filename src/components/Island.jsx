@@ -17,7 +17,7 @@ import ListSlide from "./ListSlide.jsx";
 import ClockSlide from "./ClockSlide.jsx";
 import SearchSlide from "./SearchSlide.jsx";
 import ConvertSlide from "./ConvertSlide.jsx";
-import { CompassSlide } from "./CompassSlide";
+import CompassSlide from "./CompassSlide.jsx";
 import { IconMenuCompass } from "./CompassIcon";
 import { IconMenuConvert } from "./ConvertIcon.jsx";
 import {

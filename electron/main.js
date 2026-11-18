@@ -15,6 +15,7 @@ const crypto = require("crypto");
 const { MediaBridge } = require("./media");
 const { NotifBridge } = require("./notifs");
 require("./launcher"); // pencarian & peluncur aplikasi
+const foreground = require("./foreground");
 require("./compass"); // compas
 const { registerConvert } = require("./convert"); // konversi file & gambar
 
@@ -579,6 +580,7 @@ if (gotLock)
       () => {
         media.start();
         notifs.start();
+        foreground.start();
       },
       launchedAtLogin ? 4000 : 0,
     );

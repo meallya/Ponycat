@@ -3,9 +3,9 @@ import Island from "./components/Island.jsx";
 import { useMedia } from "./hooks/useMedia.js";
 import { useLyrics } from "./hooks/useLyrics.js";
 import { useTimer } from "./hooks/useTimer.js";
-import { useFocus } from "./hooks/useFocus.js";
 import { useAlbumTint } from "./hooks/useAlbumTint.js";
 import { useTrackSwitch } from "./hooks/useTrackSwitch.js";
+import { useFocus } from "./hooks/useFocus.js";
 import { isAdPlaying } from "./lib/ads.js";
 import { isDateKey } from "./lib/dates.js";
 import { beep } from "./lib/beep.js";
@@ -15,6 +15,10 @@ const AUTO_HIDE = 4000;
 const COLLAPSE = 2500;
 const POPUP = 4000;
 const DWELL = 150;
+// true = notch kecil tetap tampil terus saat desktop kosong (tidak hilang sendiri), dan
+// bersembunyi sendiri begitu ada aplikasi (Chrome, dll.) di depan. Buka panel lewat hover
+// tetap seperti biasa. false = perilaku lama sepenuhnya (hilang sendiri setelah beberapa detik).
+const AUTO_OPEN = true;
 
 // Di Electron, posisi kursor (hover notch + zona atas) datang dari main process.
 // Event mouse DOM hanya dipakai kalau halaman dibuka di browser biasa.
@@ -39,12 +43,62 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [settings, setSettings] = useState(() => loadSettings());
+  // Aplikasi di depan (dari foreground.js): "desktop" | "app" | null (belum diketahui / tidak tersedia)
+  const [fg, setFg] = useState(null);
+  // Desktop kosong: notch kecil tidak ikut auto-hide
+  const keepVisible = AUTO_OPEN && fg === "desktop";
 
   const dwell = useRef(null);
   const leaveTimer = useRef(null);
   const saveTimer = useRef(null);
   const live = useRef({});
-  live.current = { hovered, pinned, notes, expanded, activeNoteId };
+  live.current = { hovered, pinned, notes, expanded, activeNoteId, zone };
+
+  // ====================== DEBUG (hapus setelah bug ketemu) ======================
+  // Cermin state terbaru untuk heartbeat ke main process.
+  const dbg = useRef({});
+  dbg.current = { expanded, hidden, pinned, hovered, zone, popup, slideId, fg };
+
+  // 1) Heartbeat tiap 1 detik + hitungan frame rAF. Main process memakainya untuk
+  //    membedakan: JS macet (tidak ada heartbeat) vs compositor/GPU macet (JS hidup,
+  //    frame tidak bertambah). 2) Catat setiap pointerdown yang benar-benar sampai
+  //    ke halaman: kalau klik tidak tercatat, klik tidak pernah sampai ke renderer.
+  useEffect(() => {
+    const d = window.island?.debug;
+    if (!d) return;
+    let frames = 0;
+    let raf;
+    const loop = () => {
+      frames += 1;
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    const beat = setInterval(() => {
+      d.beat({
+        ...dbg.current,
+        frames,
+        heapMB: Math.round((performance.memory?.usedJSHeapSize || 0) / 1048576),
+      });
+    }, 1000);
+    const down = (e) =>
+      d.log(
+        `pointerdown ${Math.round(e.clientX)},${Math.round(e.clientY)} <${e.target.tagName}.${String(e.target.className).slice(0, 30)}>`,
+      );
+    window.addEventListener("pointerdown", down, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(beat);
+      window.removeEventListener("pointerdown", down, true);
+    };
+  }, []);
+
+  // Catat setiap perubahan state penting (supaya terlihat state mana yang tersangkut)
+  useEffect(() => {
+    window.island?.debug?.log(
+      `state ${JSON.stringify({ expanded, hidden, pinned, hovered, zone, fg })}`,
+    );
+  }, [expanded, hidden, pinned, hovered, zone, fg]);
+  // ==================== AKHIR BLOK DEBUG ====================
 
   const { media, command: mediaCommand } = useMedia();
   const lyricsFound = useLyrics(media);
@@ -82,7 +136,7 @@ export default function App() {
     }, [attention]),
   );
 
-  // Fokus pada satu catatan: waktu habis → bunyi + buka slide Notes di catatan itu
+  // Timer fokus untuk satu catatan (slide Notes). Waktu habis: bunyi, lalu buka catatannya.
   const focus = useFocus(
     useCallback(
       (id) => {
@@ -93,6 +147,7 @@ export default function App() {
       [attention],
     ),
   );
+  live.current.focusNoteId = focus.noteId;
 
   // Bentuk notch saat tertutup: lirik (kalau lagu punya lirik ber-timestamp) > musik > fokus > timer > idle
   const compactKind =
@@ -100,7 +155,7 @@ export default function App() {
       ? lyrics?.synced
         ? "lyric"
         : "music"
-      : focus.running
+      : focus.noteId && !focus.ended
         ? "focus"
         : timer.running
           ? "timer"
@@ -133,6 +188,42 @@ export default function App() {
     });
   }, []);
 
+  /* Aplikasi di depan: desktop kosong -> notch terbuka; ada aplikasi (Chrome, dll.) -> menutup */
+  useEffect(() => {
+    if (!AUTO_OPEN) return;
+    const api = window.island?.foreground;
+    if (!api) return;
+    let alive = true;
+    const norm = (s) => (s === "desktop" || s === "app" ? s : null);
+    Promise.resolve(api.get?.())
+      .then((s) => {
+        if (alive) setFg(norm(s));
+      })
+      .catch(() => {});
+    const off = api.onUpdate?.((s) => setFg(norm(s)));
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!AUTO_OPEN) return;
+    if (fg === "desktop") {
+      // Desktop kosong: munculkan notch kecil (tidak dibuka paksa)
+      setHidden(false);
+    } else if (fg === "app") {
+      // Ada aplikasi di depan: tutup dan sembunyikan. Kalau notch sedang dipakai (kursor di
+      // atasnya / sedang mengetik), biarkan timer biasa yang menutupnya setelah selesai.
+      const l = live.current;
+      if (l.hovered || l.zone || l.pinned) return;
+      clearTimeout(leaveTimer.current);
+      setExpanded(false);
+      setPopup(false);
+      setHidden(true);
+    }
+  }, [fg]);
+
   /* Auto collapse expanded */
   useEffect(() => {
     if (!expanded || hovered || pinned) return;
@@ -148,10 +239,10 @@ export default function App() {
 
   /* Auto hide compact */
   useEffect(() => {
-    if (expanded || hovered || zone || pinned || hidden) return;
+    if (expanded || hovered || zone || pinned || hidden || keepVisible) return;
     const t = setTimeout(() => setHidden(true), AUTO_HIDE);
     return () => clearTimeout(t);
-  }, [expanded, hovered, zone, pinned, hidden]);
+  }, [expanded, hovered, zone, pinned, hidden, keepVisible]);
 
   /* Mouse ignore (hanya fallback di browser; di Electron diatur main process) */
   useEffect(() => {
@@ -218,6 +309,7 @@ export default function App() {
     if (!NATIVE_CURSOR) return;
     const prev = { hover: false, zone: false };
     return window.island.onCursor(({ hover, zone }) => {
+      window.island?.debug?.log(`onCursor hover=${hover} zone=${zone}`); // DEBUG
       const f = cursorFns.current;
       if (zone !== prev.zone) {
         prev.zone = zone;
@@ -346,6 +438,7 @@ export default function App() {
 
   const onNoteDelete = useCallback(
     (id) => {
+      if (live.current.focusNoteId === id) focus.stop();
       setNotes((list) => {
         const next = list.filter((n) => n.id !== id);
         if (next.length === 0) {
@@ -359,34 +452,29 @@ export default function App() {
         return next;
       });
     },
-    [persistNotes],
+    [persistNotes, focus.stop],
   );
 
-  // Catatan selesai dikerjakan: tandai ✓, hentikan fokus, lalu pindah ke catatan berikutnya
-  const focusStop = focus.stop;
+  // Tandai catatan selesai (fokus di catatan itu ikut berhenti) / buka lagi
   const onNoteFinish = useCallback(
     (id) => {
-      const list = live.current.notes;
-      const next = list.map((n) =>
-        n.id === id ? { ...n, done: true, updatedAt: Date.now() } : n,
-      );
-      setNotes(next);
-      persistNotes(next);
-      focusStop();
-      const nxt = next.find(
-        (n) => !n.done && n.id !== id && (n.text || "").trim(),
-      );
-      if (nxt) setActiveNoteId(nxt.id);
+      if (live.current.focusNoteId === id) focus.stop();
+      setNotes((list) => {
+        const next = list.map((n) =>
+          n.id === id ? { ...n, done: true, updatedAt: Date.now() } : n,
+        );
+        persistNotes(next);
+        return next;
+      });
     },
-    [persistNotes, focusStop],
+    [persistNotes, focus.stop],
   );
 
-  // "Catat ulang": buka kembali catatan yang sudah ✓
   const onNoteReopen = useCallback(
     (id) => {
       setNotes((list) => {
         const next = list.map((n) =>
-          n.id === id ? { ...n, done: undefined, updatedAt: Date.now() } : n,
+          n.id === id ? { ...n, done: false, updatedAt: Date.now() } : n,
         );
         persistNotes(next);
         return next;
@@ -394,11 +482,6 @@ export default function App() {
     },
     [persistNotes],
   );
-
-  // Catatan yang sedang difokuskan dihapus: sesinya ikut berhenti
-  useEffect(() => {
-    if (focus.noteId && !notes.some((n) => n.id === focus.noteId)) focusStop();
-  }, [notes, focus.noteId, focusStop]);
 
   // Pasang / lepas tanggal kalender pada catatan (date = "YYYY-MM-DD" atau null)
   const onNoteDate = useCallback(
@@ -461,6 +544,7 @@ export default function App() {
 
   const onNotesFocus = useCallback(
     (focused) => {
+      window.island?.debug?.log(`onNotesFocus(${focused}) -> pinned`); // DEBUG
       setPinned(focused);
       if (!focused) {
         clearTimeout(saveTimer.current);
@@ -570,8 +654,6 @@ export default function App() {
         command={command}
         timer={timer}
         focus={focus}
-        onNoteFinish={onNoteFinish}
-        onNoteReopen={onNoteReopen}
         tempItems={tempItems}
         onTempAdd={onTempAdd}
         onTempRemove={onTempRemove}
@@ -584,6 +666,8 @@ export default function App() {
         onNoteDate={onNoteDate}
         onOpenDate={onOpenDate}
         onNoteDelete={onNoteDelete}
+        onNoteFinish={onNoteFinish}
+        onNoteReopen={onNoteReopen}
         onNotesFocus={onNotesFocus}
         notifs={notifs}
         notifMeta={notifMeta}

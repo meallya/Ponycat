@@ -79,6 +79,15 @@ contextBridge.exposeInMainWorld("island", {
     },
   },
 
+  foreground: {
+    get: () => ipcRenderer.invoke("foreground:get"),
+    onUpdate: (cb) => {
+      const handler = (_e, s) => cb(s);
+      ipcRenderer.on("foreground:update", handler);
+      return () => ipcRenderer.removeListener("foreground:update", handler);
+    },
+  },
+
   todos: {
     load: () => ipcRenderer.invoke("todos:load"),
     save: (text) => ipcRenderer.send("todos:save", text),

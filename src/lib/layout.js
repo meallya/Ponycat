@@ -3,7 +3,7 @@ export const ALL_SLIDES = [
   { id: "music", label: "Musik" },
   { id: "timer", label: "Timer" },
   { id: "prayer", label: "Prayer" },
-  { id: "compass", label: "Kompas" },
+  // { id: "compass", label: "Kompas" },
   { id: "clock", label: "Waktu" },
   { id: "notif", label: "Notifikasi" },
   { id: "list", label: "List" },
