@@ -3,6 +3,7 @@ import Island from "./components/Island.jsx";
 import { useMedia } from "./hooks/useMedia.js";
 import { useLyrics } from "./hooks/useLyrics.js";
 import { useTimer } from "./hooks/useTimer.js";
+import { useFocus } from "./hooks/useFocus.js";
 import { useAlbumTint } from "./hooks/useAlbumTint.js";
 import { useTrackSwitch } from "./hooks/useTrackSwitch.js";
 import { isAdPlaying } from "./lib/ads.js";
@@ -81,15 +82,29 @@ export default function App() {
     }, [attention]),
   );
 
-  // Bentuk notch saat tertutup: lirik (kalau lagu punya lirik ber-timestamp) > musik > timer > idle
+  // Fokus pada satu catatan: waktu habis → bunyi + buka slide Notes di catatan itu
+  const focus = useFocus(
+    useCallback(
+      (id) => {
+        beep();
+        if (id) setActiveNoteId(id);
+        attention("notes");
+      },
+      [attention],
+    ),
+  );
+
+  // Bentuk notch saat tertutup: lirik (kalau lagu punya lirik ber-timestamp) > musik > fokus > timer > idle
   const compactKind =
     media?.hasSession && media.status === "playing"
       ? lyrics?.synced
         ? "lyric"
         : "music"
-      : timer.running
-        ? "timer"
-        : "idle";
+      : focus.running
+        ? "focus"
+        : timer.running
+          ? "timer"
+          : "idle";
 
   /* Musik auto-open */
   const seen = useRef({ key: null, status: null });
@@ -347,6 +362,44 @@ export default function App() {
     [persistNotes],
   );
 
+  // Catatan selesai dikerjakan: tandai ✓, hentikan fokus, lalu pindah ke catatan berikutnya
+  const focusStop = focus.stop;
+  const onNoteFinish = useCallback(
+    (id) => {
+      const list = live.current.notes;
+      const next = list.map((n) =>
+        n.id === id ? { ...n, done: true, updatedAt: Date.now() } : n,
+      );
+      setNotes(next);
+      persistNotes(next);
+      focusStop();
+      const nxt = next.find(
+        (n) => !n.done && n.id !== id && (n.text || "").trim(),
+      );
+      if (nxt) setActiveNoteId(nxt.id);
+    },
+    [persistNotes, focusStop],
+  );
+
+  // "Catat ulang": buka kembali catatan yang sudah ✓
+  const onNoteReopen = useCallback(
+    (id) => {
+      setNotes((list) => {
+        const next = list.map((n) =>
+          n.id === id ? { ...n, done: undefined, updatedAt: Date.now() } : n,
+        );
+        persistNotes(next);
+        return next;
+      });
+    },
+    [persistNotes],
+  );
+
+  // Catatan yang sedang difokuskan dihapus: sesinya ikut berhenti
+  useEffect(() => {
+    if (focus.noteId && !notes.some((n) => n.id === focus.noteId)) focusStop();
+  }, [notes, focus.noteId, focusStop]);
+
   // Pasang / lepas tanggal kalender pada catatan (date = "YYYY-MM-DD" atau null)
   const onNoteDate = useCallback(
     (id, date) => {
@@ -516,6 +569,9 @@ export default function App() {
         switching={switching}
         command={command}
         timer={timer}
+        focus={focus}
+        onNoteFinish={onNoteFinish}
+        onNoteReopen={onNoteReopen}
         tempItems={tempItems}
         onTempAdd={onTempAdd}
         onTempRemove={onTempRemove}

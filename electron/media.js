@@ -5,6 +5,8 @@ const readline = require("readline");
 
 const COMMANDS = new Set([
   "play-pause",
+  "pause", // pause semua pemutar yang sedang Playing (dan diingat)
+  "resume", // lanjutkan hanya yang tadi di-pause lewat "pause"
   "next",
   "prev",
   "vol-up",
@@ -176,6 +178,14 @@ class MediaBridge extends EventEmitter {
     if (!demo) return;
     this.demoTick();
     if (cmd === "play-pause") demo.playing = !demo.playing;
+    if (cmd === "pause") {
+      demo.pausedByUs = demo.playing;
+      demo.playing = false;
+    }
+    if (cmd === "resume") {
+      if (demo.pausedByUs) demo.playing = true;
+      demo.pausedByUs = false;
+    }
     if (cmd === "next" || cmd === "prev") {
       const n = DEMO_TRACKS.length;
       demo.i = (demo.i + (cmd === "next" ? 1 : n - 1)) % n;

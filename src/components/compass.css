@@ -1,0 +1,169 @@
+/* Slide Kompas. Dirancang untuk slide 580 x 152 (BASE_EXPANDED.w x SLIDE_H di lib/layout.js). */
+.cmp {
+  --cmp-gold: #e3b95a;
+  --cmp-ok: #30d158;
+  --cmp-muted: rgba(255, 255, 255, 0.6);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  height: 100%;
+  padding: 6px 34px 10px;
+  overflow: hidden;
+  color: #fff;
+  user-select: none;
+}
+
+/* ---------- piringan ---------- */
+.cmp-dial {
+  flex: none;
+  height: 100%;
+  max-height: 136px;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+}
+
+.cmp-rose {
+  transform-origin: 70px 70px;
+  transform-box: view-box;
+  transition: transform 0.22s linear;
+  will-change: transform;
+}
+
+.cmp-ring {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.2;
+  transition:
+    stroke 0.2s,
+    fill 0.2s;
+}
+
+.cmp.ok .cmp-ring {
+  stroke: var(--cmp-ok);
+  fill: rgba(48, 209, 88, 0.1);
+}
+
+.cmp-tick {
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.cmp-tick.maj {
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1.4;
+}
+
+.cmp-lbl {
+  fill: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.cmp-lbl.n {
+  fill: #ff453a;
+}
+
+.cmp-needle-line {
+  stroke: var(--cmp-gold);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.cmp-needle {
+  fill: var(--cmp-gold);
+}
+
+.cmp-kaaba {
+  fill: var(--cmp-gold);
+  stroke: #000;
+  stroke-width: 1.2;
+}
+
+.cmp-hub {
+  fill: var(--cmp-gold);
+  stroke: #000;
+  stroke-width: 1;
+}
+
+.cmp-lubber {
+  fill: #fff;
+}
+
+/* ---------- teks ---------- */
+.cmp-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 270px;
+}
+
+.cmp-kicker {
+  font-size: 11.5px;
+  line-height: 15px;
+  color: var(--cmp-muted);
+}
+
+.cmp-big {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cmp-deg {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 38px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmp-pt {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cmp-gold);
+}
+
+.cmp-place {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  line-height: 15px;
+  color: var(--cmp-muted);
+}
+
+.cmp-status {
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.cmp-status.ok {
+  color: var(--cmp-ok);
+}
+
+.cmp-status.hint {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cmp-sub {
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--cmp-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmp-rose {
+    transition: none;
+  }
+}

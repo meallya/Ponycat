@@ -17,6 +17,8 @@ import ListSlide from "./ListSlide.jsx";
 import ClockSlide from "./ClockSlide.jsx";
 import SearchSlide from "./SearchSlide.jsx";
 import ConvertSlide from "./ConvertSlide.jsx";
+import { CompassSlide } from "./CompassSlide";
+import { IconMenuCompass } from "./CompassIcon";
 import { IconMenuConvert } from "./ConvertIcon.jsx";
 import {
   IconMenuMusic,
@@ -53,6 +55,7 @@ const ICON_MAP = {
   temp: IconMenuTemp,
   search: IconMenuSearch,
   convert: IconMenuConvert,
+  compass: IconMenuCompass,
 };
 
 const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -100,6 +103,9 @@ export default function Island({
   switching,
   command,
   timer,
+  focus,
+  onNoteFinish,
+  onNoteReopen,
   tempItems,
   onTempAdd,
   onTempRemove,
@@ -268,6 +274,7 @@ export default function Island({
               kind={compactKind}
               media={media}
               timer={timer}
+              focus={focus}
               lyrics={lyrics}
               tint={tint}
               loading={switching}
@@ -362,6 +369,9 @@ export default function Island({
                     onNew={onNoteNew}
                     onDate={onNoteDate}
                     onDelete={onNoteDelete}
+                    focus={focus}
+                    onFinish={onNoteFinish}
+                    onReopen={onNoteReopen}
                     onFocusChange={onNotesFocus}
                   />
                 )}
@@ -375,7 +385,18 @@ export default function Island({
                     focusSignal={searchTick}
                   />
                 )}
-                {s.id === "prayer" && <PrayerSlide />}
+                {s.id === "prayer" && (
+                  <PrayerSlide
+                    media={media}
+                    command={command}
+                    active={expanded && activeId === "prayer"}
+                  />
+                )}
+
+                {s.id === "compass" && (
+                  <CompassSlide active={expanded && activeId === "compass"} />
+                )}
+
                 {s.id === "convert" && <ConvertSlide />}
                 {s.id === "temp" && (
                   <TempSlide

@@ -1,15 +1,14 @@
 // Pemutar adzan: saat adzan mulai, musik yang sedang jalan di-pause;
 // saat adzan selesai (atau dihentikan), musik dilanjutkan otomatis.
 //
-//   getMedia() -> objek `media` terbaru ({ hasSession, status: 'playing' | 'paused', ... })
-//   command(c) -> kirim perintah ke pemutar musik ('play-pause', dst.)
+//   command(c) -> kirim perintah ke pemutar musik: 'pause' saat adzan mulai, 'resume' saat selesai.
+//                 Sisi Electron mengingat pemutar mana yang di-pause, jadi 'resume' tidak akan
+//                 menyalakan musik yang memang sudah berhenti sebelum adzan.
 //   onChange(n) -> dipanggil dengan nama sholat saat mulai, dan null saat selesai
 
-export function createAdzanPlayer({ getMedia, command, onChange }) {
+export function createAdzanPlayer({ command, onChange }) {
   let audio = null;
   let current = null;
-  let pausedByUs = false;
-  let pausedAt = 0;
 
   const finish = () => {
     if (!current) return;
@@ -25,27 +24,15 @@ export function createAdzanPlayer({ getMedia, command, onChange }) {
         /* abaikan */
       }
     }
-    if (pausedByUs) {
-      pausedByUs = false;
-      const m = getMedia?.();
-      // Lanjutkan hanya kalau musik memang masih berhenti. Status dari Windows
-      // bisa telat beberapa detik, jadi kalau baru saja kita pause anggap masih berhenti.
-      const stillPaused =
-        m?.status !== "playing" || Date.now() - pausedAt < 3000;
-      if (stillPaused) command?.("play-pause");
-    }
+    command?.("resume");
     onChange?.(null);
   };
 
   const start = (name, src) => {
     if (current || !src) return false;
     current = name;
-    const m = getMedia?.();
-    if (m?.hasSession && m.status === "playing") {
-      command?.("play-pause");
-      pausedByUs = true;
-      pausedAt = Date.now();
-    }
+    // Dikirim tanpa melihat status: status dari Windows bisa telat beberapa detik
+    command?.("pause");
     audio = new Audio(src);
     audio.volume = 1;
     audio.onended = finish;

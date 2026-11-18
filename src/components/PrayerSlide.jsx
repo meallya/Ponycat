@@ -136,7 +136,6 @@ export default function PrayerSlide({
   if (!firedRef.current) firedRef.current = loadFired();
   if (!playerRef.current) {
     playerRef.current = createAdzanPlayer({
-      getMedia: () => mediaRef.current,
       command: (c) => commandRef.current?.(c),
       onChange: (name) => {
         setPlayingName(name);

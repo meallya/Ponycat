@@ -1924,3 +1924,77 @@ button {
   background: rgba(255, 255, 255, 0.85);
   color: #000;
 }
+
+/* ---------- Fokus per catatan ---------- */
+.notes-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+.notes-bar .notes-date {
+  padding: 0 0 0 6px;
+}
+.notes-focus {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.notes-focus button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 10.5px;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.notes-focus button.icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+}
+.notes-focus button.ok {
+  background: #30d158;
+  color: #000;
+}
+.notes-focus button:hover:not(:disabled) {
+  filter: brightness(1.25);
+}
+.notes-focus button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.focus-min {
+  min-width: 26px;
+  text-align: center;
+}
+.focus-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #30d158;
+  min-width: 42px;
+}
+.focus-time.end,
+.focus-done {
+  color: #30d158;
+}
+.notes-item.done .notes-item-title {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.notes-item.focusing .notes-item-title {
+  color: #30d158;
+}
+.compact-focus .c-time {
+  color: #30d158;
+}

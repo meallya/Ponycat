@@ -5,7 +5,15 @@ import LoadingDots from "./LoadingDots.jsx";
 import { IconTimer } from "./icons.jsx";
 import { fmtTimer } from "../lib/format.js";
 
-export default function Compact({ kind, media, timer, lyrics, tint, loading }) {
+export default function Compact({
+  kind,
+  media,
+  timer,
+  focus,
+  lyrics,
+  tint,
+  loading,
+}) {
   // Lagu sedang berganti: titik loading menggantikan lirik / equalizer
   if (loading && (kind === "lyric" || kind === "music")) {
     return (
@@ -24,6 +32,14 @@ export default function Compact({ kind, media, timer, lyrics, tint, loading }) {
     return (
       <div className="compact-inner">
         <Eq on />
+      </div>
+    );
+  }
+  if (kind === "focus") {
+    return (
+      <div className="compact-inner compact-timer compact-focus">
+        <IconTimer size={14} color="#30d158" />
+        <span className="c-time">{fmtTimer(focus.left)}</span>
       </div>
     );
   }

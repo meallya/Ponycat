@@ -4,7 +4,7 @@
 # di Chrome atau Edge, Windows Media Player, VLC, dll.
 #
 # Keluaran : satu baris JSON per perubahan (stdout)
-# Masukan  : satu perintah per baris (stdin): play-pause | next | prev | vol-up | vol-down | vol-mute
+# Masukan  : satu perintah per baris (stdin): play-pause | pause | resume | next | prev | vol-up | vol-down | vol-mute
 # Proses ini berhenti sendiri kalau stdin ditutup (Electron keluar).
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -106,6 +106,9 @@ $thumbTries = 0
 $lastEmit = [DateTime]::MinValue
 $lastPos = -1.0
 $force = $false
+# Pemutar yang di-pause lewat perintah 'pause' (mis. saat adzan), supaya 'resume' hanya
+# melanjutkan yang tadi benar-benar sedang main, bukan yang memang sudah berhenti.
+$pausedIds = @()
 
 while ($true) {
     # --- perintah dari Electron ---
@@ -120,6 +123,21 @@ while ($true) {
                 if ($cmd -eq 'vol-up')   { $shell.SendKeys([char]175) }
                 if ($cmd -eq 'vol-down') { $shell.SendKeys([char]174) }
                 if ($cmd -eq 'vol-mute') { $shell.SendKeys([char]173) }
+            } elseif ($cmd -eq 'pause') {
+                $pausedIds = @()
+                foreach ($x in $manager.GetSessions()) {
+                    if ($x.GetPlaybackInfo().PlaybackStatus.ToString() -eq 'Playing') {
+                        [void](Await ($x.TryPauseAsync()) ([bool]))
+                        $pausedIds += $x.SourceAppUserModelId
+                    }
+                }
+            } elseif ($cmd -eq 'resume') {
+                foreach ($x in $manager.GetSessions()) {
+                    if ($pausedIds -contains $x.SourceAppUserModelId) {
+                        [void](Await ($x.TryPlayAsync()) ([bool]))
+                    }
+                }
+                $pausedIds = @()
             } else {
                 $s = Get-ActiveSession
                 if ($null -ne $s) {

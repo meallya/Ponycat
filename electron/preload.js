@@ -68,6 +68,17 @@ contextBridge.exposeInMainWorld("island", {
       return () => ipcRenderer.removeListener("notifs:update", handler);
     },
   },
+
+  compass: {
+    start: () => ipcRenderer.invoke("compass:start"),
+    stop: () => ipcRenderer.send("compass:stop"),
+    onUpdate: (cb) => {
+      const handler = (_e, data) => cb(data);
+      ipcRenderer.on("compass:update", handler);
+      return () => ipcRenderer.removeListener("compass:update", handler);
+    },
+  },
+
   todos: {
     load: () => ipcRenderer.invoke("todos:load"),
     save: (text) => ipcRenderer.send("todos:save", text),

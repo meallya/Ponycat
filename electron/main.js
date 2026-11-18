@@ -15,6 +15,7 @@ const crypto = require("crypto");
 const { MediaBridge } = require("./media");
 const { NotifBridge } = require("./notifs");
 require("./launcher"); // pencarian & peluncur aplikasi
+require("./compass"); // compas
 const { registerConvert } = require("./convert"); // konversi file & gambar
 
 const isDev = process.env.DEV === "1";
