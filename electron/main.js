@@ -150,11 +150,6 @@ function cursorTick() {
   // jadi tombol jendela di pojok atas aplikasi lain tetap bisa diklik.
   const ignore = !inside;
   if (ignore !== lastIgnore || beats === 0) {
-    if (ignore !== lastIgnore) {
-      console.info(
-        `[input] ignore=${ignore} inside=${inside} zone=${zone} rect=${JSON.stringify(islandRect)} focusable=${win.isFocusable()}`,
-      );
-    }
     setIgnore(ignore);
   }
 
