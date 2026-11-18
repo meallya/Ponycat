@@ -142,12 +142,21 @@ function cursorTick() {
   const zone =
     ly >= 0 && ly <= ZONE_H && lx >= cx - ZONE_W / 2 && lx <= cx + ZONE_W / 2;
 
-  // Tulis ulang status ignore tiap ~2 detik: kalau Windows sempat melupakannya, pulih sendiri.
-  beats = (beats + 1) % 40;
+  // Reassert status input secara berkala. Pada window transparan + always-on-top
+  // di Windows, status click-through kadang tidak sinkron setelah interaksi lama,
+  // sleep/lock, atau perubahan fokus. Interval 500 ms membuat pemulihan lebih cepat.
+  beats = (beats + 1) % 10;
   // Zona atas hanya memicu buka lewat posisi kursor; tidak perlu menangkap klik,
   // jadi tombol jendela di pojok atas aplikasi lain tetap bisa diklik.
   const ignore = !inside;
-  if (ignore !== lastIgnore || beats === 0) setIgnore(ignore);
+  if (ignore !== lastIgnore || beats === 0) {
+    if (ignore !== lastIgnore) {
+      console.info(
+        `[input] ignore=${ignore} inside=${inside} zone=${zone} rect=${JSON.stringify(islandRect)} focusable=${win.isFocusable()}`,
+      );
+    }
+    setIgnore(ignore);
+  }
 
   if (inside !== lastHover || zone !== lastZone || beats === 0) {
     lastHover = inside;
