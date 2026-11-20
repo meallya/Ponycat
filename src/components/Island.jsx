@@ -40,9 +40,26 @@ import {
 } from "../lib/layout.js";
 
 const SIZE_T = { duration: 0.36, ease: [0.22, 1, 0.36, 1] };
-const VERTICAL = { duration: 0.28, ease: [0.22, 1, 0.36, 1] };
 const SLIDE_SNAP = { type: "spring", stiffness: 380, damping: 36, mass: 0.75 };
-const HIDDEN_Y = -40;
+// Cukup jauh di atas layar supaya bayangan notch (turun sampai ~26px) ikut tak terlihat saat tersembunyi
+const HIDDEN_Y = -72;
+const HIDDEN_SCALE = 0.86;
+
+// Notch muncul dari atas layar: meluncur turun dengan sedikit pantulan, serupa saat panel membuka.
+const SPRING_IN = { type: "spring", stiffness: 300, damping: 20, mass: 0.8 };
+const SHOW_T = {
+  y: SPRING_IN,
+  scale: SPRING_IN,
+  opacity: { duration: 0.16, ease: "easeOut" },
+};
+// Notch menyembunyikan diri ke atas: ditarik naik makin cepat, mengecil sedikit, lalu memudar.
+// delay dipakai saat panel baru saja menutup, supaya panel mengecil dulu baru naik.
+const HIDE_EASE = [0.5, 0, 0.75, 0];
+const hideT = (delay) => ({
+  y: { duration: 0.4, ease: HIDE_EASE, delay },
+  scale: { duration: 0.4, ease: HIDE_EASE, delay },
+  opacity: { duration: 0.2, ease: "easeIn", delay: delay + 0.2 },
+});
 
 const ICON_MAP = {
   music: IconMenuMusic,
@@ -147,6 +164,16 @@ export default function Island({
   };
   const size = expanded ? expandedSize : compact;
   const slideH = Math.round(SLIDE_H * scale);
+
+  // Transisi naik/turun mengikuti arah: sembunyi (ke atas) atau muncul (turun).
+  // wasExpanded dibaca saat render, sebelum efek di bawah memperbaruinya, jadi true tepat
+  // di render ketika panel menutup bersamaan dengan notch bersembunyi.
+  const wasExpanded = useRef(expanded);
+  const closingAway = hidden && wasExpanded.current && !expanded;
+  useEffect(() => {
+    wasExpanded.current = expanded;
+  }, [expanded]);
+  const moveT = hidden ? hideT(closingAway ? 0.12 : 0) : SHOW_T;
 
   // Laporkan ukuran notch yang dituju ke main process: dipakai untuk hit-test kursor,
   // supaya klik di luar notch selalu tembus ke aplikasi lain.
@@ -269,9 +296,19 @@ export default function Island({
     <motion.div
       className={`island ${expanded ? "open" : "closed"}`}
       initial={false}
-      animate={{ width: size.w, height: size.h, y: hidden ? HIDDEN_Y : 0 }}
-      transition={{ width: SIZE_T, height: SIZE_T, y: VERTICAL }}
-      style={{ pointerEvents: hidden ? "none" : "auto", ...accentStyle }}
+      animate={{
+        width: size.w,
+        height: size.h,
+        y: hidden ? HIDDEN_Y : 0,
+        scale: hidden ? HIDDEN_SCALE : 1,
+        opacity: hidden ? 0 : 1,
+      }}
+      transition={{ width: SIZE_T, height: SIZE_T, ...moveT }}
+      style={{
+        pointerEvents: hidden ? "none" : "auto",
+        transformOrigin: "50% 0%",
+        ...accentStyle,
+      }}
       onMouseEnter={nativeCursor ? undefined : () => onHover(true)}
       onMouseLeave={nativeCursor ? undefined : () => onHover(false)}
       onClick={(e) => {
