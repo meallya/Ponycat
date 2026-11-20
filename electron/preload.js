@@ -29,6 +29,12 @@ contextBridge.exposeInMainWorld("island", {
     return () => ipcRenderer.removeListener("island:reveal", handler);
   },
 
+  onPerfToggle: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("island:perf-toggle", handler);
+    return () => ipcRenderer.removeListener("island:perf-toggle", handler);
+  },
+
   media: {
     get: () => ipcRenderer.invoke("media:get"),
     command: (cmd) => ipcRenderer.send("media:command", cmd),

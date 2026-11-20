@@ -21,6 +21,11 @@ const { registerConvert } = require("./convert"); // konversi file & gambar
 
 const isDev = process.env.DEV === "1";
 
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-background-timer-throttling");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+
 // Window dibuat lebih besar dari pill-nya. Yang dianimasikan cuma pill di dalamnya,
 // sisanya transparan dan click-through.
 const WIN_W = 680;
@@ -555,7 +560,9 @@ if (gotLock)
     createWindow();
     createTrayWithRetry();
     startCursorWatch();
-    globalShortcut.register("Control+Alt+Q", () => app.quit());
+    globalShortcut.register("Control+Alt+F", () => {
+      if (win && !win.isDestroyed()) win.webContents.send("island:perf-toggle");
+    });
 
     // Pintasan global: buka island langsung ke pencarian aplikasi
     const searchKey = "Control+Alt+Space";

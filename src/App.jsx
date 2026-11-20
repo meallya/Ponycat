@@ -28,6 +28,63 @@ const NATIVE_CURSOR = Boolean(
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+// ===== PENGUKUR FPS (sementara; hapus bersama onPerfToggle di preload dan main.js) =====
+// Ctrl+Alt+F menampilkan / menyembunyikan. Menampilkan: fps rata-rata, frame terlama dalam 3 detik
+// terakhir, dan jumlah frame yang lebih lambat dari 25 ms (terasa patah).
+function PerfMeter() {
+  const ref = useRef(null);
+  useEffect(() => {
+    let raf;
+    let last = performance.now();
+    let t0 = last;
+    let frames = 0;
+    const recent = []; // [waktu, lama frame]
+    const loop = (now) => {
+      recent.push([now, now - last]);
+      last = now;
+      frames += 1;
+      while (recent.length && now - recent[0][0] > 3000) recent.shift();
+      if (now - t0 >= 500) {
+        const fps = Math.round((frames * 1000) / (now - t0));
+        let max = 0;
+        let slow = 0;
+        for (const [, dt] of recent) {
+          if (dt > max) max = dt;
+          if (dt > 25) slow += 1;
+        }
+        if (ref.current) {
+          ref.current.textContent = `${fps} fps · terlama ${Math.round(max)} ms · lambat ${slow}`;
+        }
+        frames = 0;
+        t0 = now;
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "fixed",
+        left: 8,
+        top: 8,
+        padding: "2px 7px",
+        borderRadius: 5,
+        background: "rgba(0,0,0,0.75)",
+        color: "#30d158",
+        font: "11px/1.4 ui-monospace, Consolas, monospace",
+        pointerEvents: "none",
+        zIndex: 99999,
+      }}
+    >
+      mengukur…
+    </div>
+  );
+}
+// ===== AKHIR PENGUKUR FPS =====
+
 export default function App() {
   const [expanded, setExpanded] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -45,6 +102,7 @@ export default function App() {
   const [settings, setSettings] = useState(() => loadSettings());
   // Aplikasi di depan (dari foreground.js): "desktop" | "app" | null (belum diketahui / tidak tersedia)
   const [fg, setFg] = useState(null);
+  const [perf, setPerf] = useState(false); // pengukur FPS (sementara)
   // Desktop kosong: notch kecil tidak ikut auto-hide
   const keepVisible = AUTO_OPEN && fg === "desktop";
 
@@ -178,6 +236,11 @@ export default function App() {
       attention("music");
     }
   }, [media, attention]);
+
+  /* Pengukur FPS (sementara): Ctrl+Alt+F */
+  useEffect(() => {
+    return window.island?.onPerfToggle?.(() => setPerf((v) => !v));
+  }, []);
 
   /* Tray reveal */
   useEffect(() => {
@@ -625,6 +688,7 @@ export default function App() {
 
   return (
     <div className="stage" onClick={onStageClick}>
+      {perf && <PerfMeter />}
       <div
         className={`open-hint ${hidden && !zone ? "show" : ""}`}
         onMouseEnter={NATIVE_CURSOR ? undefined : onZoneEnter}

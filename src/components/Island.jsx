@@ -18,7 +18,7 @@ import ClockSlide from "./ClockSlide.jsx";
 import SearchSlide from "./SearchSlide.jsx";
 import ConvertSlide from "./ConvertSlide.jsx";
 import CompassSlide from "./CompassSlide.jsx";
-import { IconMenuCompass } from "./CompassIcon";
+import { IconMenuCompass } from "./CompassIcon.jsx";
 import { IconMenuConvert } from "./ConvertIcon.jsx";
 import {
   IconMenuMusic,
@@ -191,6 +191,30 @@ export default function Island({
     menus.findIndex((m) => m.id === activeId),
   );
 
+  // Baris ikon menu bisa lebih lebar dari ruangnya (menu banyak + pil aktif + jam). Geser otomatis
+  // supaya menu aktif selalu terlihat penuh. Pakai getBoundingClientRect karena .menu-icons
+  // bukan elemen berposisi, jadi offsetLeft tidak bisa dipakai.
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const box = menuRef.current;
+    if (!box || !expanded) return;
+    const t = setTimeout(() => {
+      const el = box.querySelector(".menu-item.on");
+      if (!el) return;
+      const b = box.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const PAD = 8;
+      const left = r.left - b.left + box.scrollLeft - PAD;
+      const right = r.right - b.left + box.scrollLeft + PAD;
+      if (left < box.scrollLeft) {
+        box.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+      } else if (right > box.scrollLeft + box.clientWidth) {
+        box.scrollTo({ left: right - box.clientWidth, behavior: "smooth" });
+      }
+    }, 280); // tunggu pil aktif selesai melebar
+    return () => clearTimeout(t);
+  }, [activeId, expanded, menus.length]);
+
   // Warna cover dipakai di dua tempat: notch tertutup saat lirik tampil, dan slide Musik
   const tintOn =
     Boolean(tint) &&
@@ -306,7 +330,16 @@ export default function Island({
         }}
       >
         <div className="menu-bar" onClick={(e) => e.stopPropagation()}>
-          <div className="menu-icons">
+          <div
+            className="menu-icons"
+            ref={menuRef}
+            onWheel={(e) => {
+              // Scroll mouse biasa (vertikal) menggeser baris ikon ke samping
+              const b = e.currentTarget;
+              if (b.scrollWidth > b.clientWidth)
+                b.scrollLeft += e.deltaY || e.deltaX;
+            }}
+          >
             {menus.map((s) => (
               <MenuItem
                 key={s.id}
