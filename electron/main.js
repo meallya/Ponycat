@@ -15,10 +15,16 @@ const crypto = require("crypto");
 const { MediaBridge } = require("./media");
 const { NotifBridge } = require("./notifs");
 require("./launcher"); // pencarian & peluncur aplikasi
+const foreground = require("./foreground");
 require("./compass"); // compas
 const { registerConvert } = require("./convert"); // konversi file & gambar
 
 const isDev = process.env.DEV === "1";
+
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-background-timer-throttling");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
 
 // Window dibuat lebih besar dari pill-nya. Yang dianimasikan cuma pill di dalamnya,
 // sisanya transparan dan click-through.
@@ -142,12 +148,16 @@ function cursorTick() {
   const zone =
     ly >= 0 && ly <= ZONE_H && lx >= cx - ZONE_W / 2 && lx <= cx + ZONE_W / 2;
 
-  // Tulis ulang status ignore tiap ~2 detik: kalau Windows sempat melupakannya, pulih sendiri.
-  beats = (beats + 1) % 40;
+  // Reassert status input secara berkala. Pada window transparan + always-on-top
+  // di Windows, status click-through kadang tidak sinkron setelah interaksi lama,
+  // sleep/lock, atau perubahan fokus. Interval 500 ms membuat pemulihan lebih cepat.
+  beats = (beats + 1) % 10;
   // Zona atas hanya memicu buka lewat posisi kursor; tidak perlu menangkap klik,
   // jadi tombol jendela di pojok atas aplikasi lain tetap bisa diklik.
   const ignore = !inside;
-  if (ignore !== lastIgnore || beats === 0) setIgnore(ignore);
+  if (ignore !== lastIgnore || beats === 0) {
+    setIgnore(ignore);
+  }
 
   if (inside !== lastHover || zone !== lastZone || beats === 0) {
     lastHover = inside;
@@ -550,7 +560,9 @@ if (gotLock)
     createWindow();
     createTrayWithRetry();
     startCursorWatch();
-    globalShortcut.register("Control+Alt+Q", () => app.quit());
+    globalShortcut.register("Control+Alt+F", () => {
+      if (win && !win.isDestroyed()) win.webContents.send("island:perf-toggle");
+    });
 
     // Pintasan global: buka island langsung ke pencarian aplikasi
     const searchKey = "Control+Alt+Space";
@@ -575,6 +587,7 @@ if (gotLock)
       () => {
         media.start();
         notifs.start();
+        foreground.start();
       },
       launchedAtLogin ? 4000 : 0,
     );

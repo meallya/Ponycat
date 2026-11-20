@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 // Tombol menu island. Menu yang aktif melebar jadi pil berisi ikon + nama menu,
-// menu lain tetap ikon saja. Gaya dasar ditulis inline supaya tidak bergantung pada CSS lain;
+// menu lain tetap ikon saja (lebar 28px: ikon 14px + padding 7px di tiap sisi, supaya 10-11 menu
+// plus pil aktif dan jam muat di satu baris). Gaya dasar ditulis inline supaya tidak bergantung pada CSS lain;
 // kalau mau disetel lewat CSS, pakai kelas .menu-item, .menu-item.on, dan .menu-label.
 
 const LABEL_T = { duration: 0.24, ease: [0.22, 1, 0.36, 1] };
@@ -12,14 +13,16 @@ const BASE = {
   justifyContent: "center",
   flexShrink: 0,
   width: "auto",
-  padding: "0 10px",
+  padding: "0 7px",
   borderRadius: 999,
-  transition: "background-color 200ms ease, color 200ms ease",
+  transition:
+    "background-color 200ms ease, color 200ms ease, padding 240ms cubic-bezier(0.22, 1, 0.36, 1)",
 };
 
 const ACTIVE = {
   background: "rgba(255, 255, 255, 0.14)",
   color: "#fff",
+  padding: "0 10px",
 };
 
 export default function MenuItem({ Icon, label, active, onClick }) {

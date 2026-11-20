@@ -29,6 +29,12 @@ contextBridge.exposeInMainWorld("island", {
     return () => ipcRenderer.removeListener("island:reveal", handler);
   },
 
+  onPerfToggle: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("island:perf-toggle", handler);
+    return () => ipcRenderer.removeListener("island:perf-toggle", handler);
+  },
+
   media: {
     get: () => ipcRenderer.invoke("media:get"),
     command: (cmd) => ipcRenderer.send("media:command", cmd),
@@ -76,6 +82,15 @@ contextBridge.exposeInMainWorld("island", {
       const handler = (_e, data) => cb(data);
       ipcRenderer.on("compass:update", handler);
       return () => ipcRenderer.removeListener("compass:update", handler);
+    },
+  },
+
+  foreground: {
+    get: () => ipcRenderer.invoke("foreground:get"),
+    onUpdate: (cb) => {
+      const handler = (_e, s) => cb(s);
+      ipcRenderer.on("foreground:update", handler);
+      return () => ipcRenderer.removeListener("foreground:update", handler);
     },
   },
 
